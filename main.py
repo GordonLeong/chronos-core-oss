@@ -7,6 +7,10 @@ import asyncio
 
 # local import: db.init_db() is async and creates tables (db.py must exist)
 from db import init_db
+from routers.universes import router as universes_router
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("chronos.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,8 +26,7 @@ async def lifespan(app: FastAPI):
     finally:
         logger.info("LIFESPAN.shutting down")
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("chronos.main")
+
 
 app = FastAPI(
     title="Chronos Core (v0.01)",
@@ -32,8 +35,7 @@ app = FastAPI(
 )
 
 
-
-
+app.include_router(universes_router)
 
 
 @app.get("/", response_class=JSONResponse)

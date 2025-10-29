@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 
-from db import AsyncSessionLocal
+from db import get_session
 from models import UniverseCreate, UniverseRead
 from repositories.universes import(
     create_universe,
@@ -17,11 +17,6 @@ from repositories.universes import(
 
 router = APIRouter(prefix="/universes", tags=["universes"])
 
-#--- session dependency
-
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncSessionLocal() as session:
-        yield session
 
 @router.post(
     "",
