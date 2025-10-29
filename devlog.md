@@ -1,4 +1,4 @@
-DEVLOG — Chronos Core OSS v0.01 (relative to roadmap)
+# DEVLOG — Chronos Core OSS v0.01 (relative to roadmap)
 
 Backend scaffold (Phase 0.01)
 
