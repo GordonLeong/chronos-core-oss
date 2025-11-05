@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -101,3 +101,21 @@ async def list_universe_stocks(
         select(Stock).where(Stock.id.in_(stock_ids)).order_by(Stock.ticker)
     )
     return res2.scalars().all()
+
+
+async def remove_stock_from_universe(
+    session: AsyncSession, *, universe_id: int, stock_id: int
+) -> bool:
+    
+    """
+    Delete the (universe, stock) membership. Returns True if a link existed.
+    """
+    res = await session.execute(
+        delete(UniverseMember).where(
+            UniverseMember.universe_id == universe_id,
+            UniverseMember.stock_id == stock_id,
+        )
+    )
+
+    await session.commit()
+    return bool(getattr(res, "rowcount", 0))
