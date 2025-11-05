@@ -1,4 +1,4 @@
-# DEVLOG — Chronos Core OSS v0.01 
+# DEVLOG — Chronos Core OSS v0.01
 
 ## Session 2 — 6 Nov 2025
 
