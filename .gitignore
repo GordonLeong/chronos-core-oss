@@ -1,0 +1,67 @@
+# ---- OS / Editors ----
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+
+# VS Code: ignore everything except files you choose to keep
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# ---- Python (api/) ----
+__pycache__/
+*.py[oc]
+*.egg-info/
+.build/
+dist/
+wheels/
+.cache/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.nox/
+
+# Virtual envs
+.venv/
+.venv*/
+
+# SQLite (keep DBs out of git)
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+logs/
+*.log
+
+# Env files
+.env
+.env.*
+!.env.example
+web/.env.local
+!web/.env.local.example
+
+# Coverage / reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Jupyter (if you ever use it)
+.ipynb_checkpoints/
+
+# ---- Node / Next.js (web/) ----
+node_modules/
+web/.next/
+web/.turbo/
+web/.vercel/
+# If you use pnpm or yarn, add:
+# pnpm-store/
+# yarn-error.log
+
+# ---- Misc build cache ----
+**/.cache/
