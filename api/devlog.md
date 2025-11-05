@@ -1,4 +1,17 @@
-# DEVLOG — Chronos Core OSS v0.01 (relative to roadmap)
+# DEVLOG — Chronos Core OSS v0.01 
+
+## Session 2 — 6 Nov 2025
+
+Completed Phase 0.01 backend foundations.
+ • Added repositories/stocks.py with get_or_create_stock, add_stock_to_universe, list_universe_stocks, remove_stock_from_universe.
+ • Extended routers/universes.py with POST, GET, and DELETE for /universes/{id}/stocks.
+ • Switched DELETE to operate by ticker instead of internal stock_id.
+ • Verified full universe ↔ stock lifecycle: create universe → add ticker → list → unlink → delete universe.
+ • UniverseMember now cleanly separates membership from canonical Stock, enabling shared data fetch and deduped OHLCV.
+
+Next: introduce StockData cache + yahooquery fetcher for Phase 0.02.
+
+## Session 1
 
 Backend scaffold (Phase 0.01)
 
