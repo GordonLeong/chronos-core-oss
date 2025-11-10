@@ -1,9 +1,11 @@
 from typing import Optional
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey, UniqueConstraint
+from datetime import datetime, timezone
+from sqlalchemy import Column, Dialect, Integer, String, DateTime, func, ForeignKey, Enum as SAEnum, UniqueConstraint
+from sqlalchemy.types import TypeDecorator, DateTime as SADateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db import Base
 from pydantic import BaseModel, ConfigDict
+import enum
 
 class Universe(Base):
     __tablename__ = "universes"
@@ -60,3 +62,69 @@ class UniverseRead(BaseModel):
     name: str
     description: Optional[str] = None
     created_at: Optional[datetime] = None
+
+
+class UtcDateTime(TypeDecorator):
+    """
+    stores datetimes as naive UTC in DB: returns tz-aware UTC datetimes in python.
+    Works across SQLite(tz lost) and Postgres (tz preserved).
+    """
+
+    impl = SADateTime
+    cache_ok=True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        # convert any tz-aware to UTC then drop tzinfo before storing
+
+        if value.tzinfo is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+    
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        #attach UTC tzinfo on load
+
+        return value.replace(tzinfo=timezone.utc)
+
+
+class CacheStatus(str, enum.Enum):
+    fresh = "fresh"
+    stale = "stale"
+    fetching = "fetching"
+    error = "error"
+    unknown = "unknown"
+
+
+class StockPriceCache(Base):
+    __tablename__ = "stock_price_cache"
+
+    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id", ondelete="CASCADE"),primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32), primary_key=True) #e.g. yahooquery
+    interval: Mapped[str] = mapped_column(String(8), primary_key=True) #e.g. 1d, 1h
+
+    last_fetched_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime(), nullable=True)
+    status: Mapped[CacheStatus] = mapped_column(
+        SAEnum(CacheStatus, name = "cache_status"),
+        nullable = False,
+        default = CacheStatus.unknown
+    )
+    detail: Mapped[Optional[str]] = mapped_column(String(512), nullable=True) #last error or note
+
+    #optional backref
+    stock: Mapped["Stock"] = relationship(back_populates="price_cache", lazy="joined")
+
+
+Stock.price_cache = relationship(
+    "StockPriceCache",
+    back_populates="stock",
+    cascade="all, delete-orphan",
+    lazy = "selectin"
+)
+    
+    
+    
+
+

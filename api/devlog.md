@@ -1,5 +1,15 @@
 # DEVLOG — Chronos Core OSS v0.01
 
+## Session 3 - 11 Nov 2025
+
+ • Added provider-agnostic fetching layer:
+ • services/provider_registry.py — PriceProvider Protocol + registry (register_provider, get_provider).
+ • services/providers/yahooquery_adapter.py — YahooQuery adapter; registers on import.
+ • services/price_refresh.py — provider-agnostic refresh_prices_for_stock() with cache transitions (fetching → fresh|error) and thread offload for blocking I/O.
+ • Routers:
+ • Updated POST /stocks/{ticker}/refresh to call refresh_prices_for_stock and return cache state.
+ • Verified end-to-end: provider returns row count; cache detail set to “fetched N rows from yahooquery”.
+
 ## Session 2 — 6 Nov 2025
 
 Completed Phase 0.01 backend foundations.
