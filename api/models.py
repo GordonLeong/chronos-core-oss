@@ -1,6 +1,6 @@
 from typing import Optional
-from datetime import datetime, timezone
-from sqlalchemy import Column, Dialect, Integer, String, DateTime, func, ForeignKey, Enum as SAEnum, UniqueConstraint
+from datetime import datetime, timezone, date
+from sqlalchemy import Column, Dialect, Integer, String, DateTime, func, ForeignKey, Enum as SAEnum, UniqueConstraint, Float
 from sqlalchemy.types import TypeDecorator, DateTime as SADateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db import Base
@@ -124,7 +124,24 @@ Stock.price_cache = relationship(
     lazy = "selectin"
 )
     
-    
-    
+
+
+class StockOHLCV(Base):
+    __tablename__ = "stock_ohlcv"
+    stock_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("stocks.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    as_of: Mapped[date] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32), primary_key=True)
+    interval: Mapped[str] = mapped_column(String(8), primary_key=True)
+
+    open: Mapped[float] = mapped_column(Float, nullable=False)
+    low: Mapped[float] = mapped_column(Float, nullable=False)
+    high: Mapped[float] = mapped_column(Float, nullable=False)
+    close: Mapped[float] = mapped_column(Float, nullable=False)
+    volume: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
 
 

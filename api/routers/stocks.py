@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_session
 from repositories.stocks import get_stock_by_ticker
-from repositories.cache import get_cache_status
+from repositories.cache import get_cache_status, upsert_cache_status
 from models import CacheStatus
 
 router = APIRouter(prefix="/stocks", tags =["stocks"])
@@ -33,3 +33,46 @@ async def get_stock_status(
         "detail": row.detail
 
     }
+
+
+@router.post("/{ticker}/refresh", status_code=status.HTTP_202_ACCEPTED)
+async def refresh_stock_stub(
+    ticker: str,
+    provider: str = Query("yahooquery"),
+    interval: str = Query("1d"),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    #resolve ticker -> stock:
+    stock = await get_stock_by_ticker(session, ticker)
+    if not stock:
+        raise HTTPException(status_code=404, detail = "stock not found")
+    
+    await upsert_cache_status(
+        session,
+        stock_id = stock.id,
+        provider = provider,
+        interval = interval,
+        status = CacheStatus.fetching,
+        detail = "starting refresh (stub)"
+
+    )
+
+    row = await upsert_cache_status(
+        session, 
+        stock_id = stock.id,
+        provider = provider,
+        interval = interval,
+        status = CacheStatus.fresh,
+        detail="refresh complete(stub: no provider called)",
+    )
+
+
+    return {
+        "ticker": stock.ticker,
+        "provider": provider,
+        "interval": interval,
+        "status": row.status.value,
+        "last_fetched_at": row.last_fetched_at.isoformat() if row.last_fetched_at else None,
+        "detail": row.detail,
+    }
+    
