@@ -3,6 +3,8 @@ from typing import Protocol, runtime_checkable, Dict, List, Optional
 from datetime import date
 from ohlcv import OHLCVRow
 
+_BUILTINS_LOADED = False
+
 @runtime_checkable
 class PriceProvider(Protocol):
     """
@@ -34,7 +36,18 @@ _REGISTRY: Dict[str, PriceProvider] = {}
 def register_provider(provider: PriceProvider) -> None:
     _REGISTRY[provider.name] = provider
 
+def _ensure_builtins_loaded() -> None:
+    global _BUILTINS_LOADED
+    if _BUILTINS_LOADED:
+        return
+
+    # Import default providers for their side-effects (register_provider calls)
+    from services.providers import yahooquery_adapter  # noqa: F401
+
+    _BUILTINS_LOADED = True
+
 def get_provider(name: str) -> PriceProvider:
+    _ensure_builtins_loaded()
     try:
         return _REGISTRY[name]
     
