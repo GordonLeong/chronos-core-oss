@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Protocol, runtime_checkable, Dict
-
+from typing import Protocol, runtime_checkable, Dict, List, Optional
+from datetime import date
+from ohlcv import OHLCVRow
 
 @runtime_checkable
 class PriceProvider(Protocol):
@@ -14,6 +15,19 @@ class PriceProvider(Protocol):
         Return number of rows fetched or 0 if none. Raise on fatal errors.
         """
         ...
+    def fetch_ohlcv_rows(
+            self, 
+            ticker: str,
+            interval: str,
+    ) -> list[OHLCVRow]:
+        """
+        Return normalized OHLCV rows for (ticker, interval).
+
+        Each tuple is:
+        (date, open, high, low, close, volume_or_None)
+        """
+        ...
+        
 
 _REGISTRY: Dict[str, PriceProvider] = {}
 

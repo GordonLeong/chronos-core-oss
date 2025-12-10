@@ -6,6 +6,8 @@ from typing import Optional, List, cast
 import pandas as pd
 from yahooquery import Ticker
 
+from ohlcv import OHLCVRow
+
 
 class YahooQueryProvider:
     """
@@ -26,16 +28,16 @@ class YahooQueryProvider:
             self,
             ticker: str,
             interval: str,
-    ) -> List[tuple[date,float,float,float,float,Optional[float]]]:
+    ) -> List[OHLCVRow]:
         """
         Fetch OHLCV data from yahooquery and normalise into 
         (date, open, high, low, close, volume) tuples
         Volume may be None, if not available
         """
         tk = Ticker(ticker, asynchronous=False)
-        data = tk.history(interval="6mo")
+        data = tk.history(interval="3mo")
 
-        rows: List[tuple[date, float, float, float, float, Optional[float]]] = []
+        rows: List[OHLCVRow] = []
 
         if isinstance(data, pd.DataFrame):
             df = data
