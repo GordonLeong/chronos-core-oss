@@ -8,8 +8,11 @@ dependencies = [
     "aiosqlite>=0.21.0",
     "fastapi>=0.120.1",
     "greenlet>=3.2.4",
+    "pandas>=2.2.0",
+    "pandas-ta>=0.3.14b0",
     "pydantic>=2.12.3",
     "sqlalchemy>=2.0.44",
     "uvicorn>=0.38.0",
     "yahooquery>=2.4.1",
+
 ]

@@ -1,6 +1,7 @@
 # api/services/refresh_prices.py
 
 from __future__ import annotations
+from services.ta_compute import compute_and_upsert_signals
 
 import asyncio
 import logging
@@ -91,6 +92,13 @@ async def refresh_stock_prices(
             provider=provider,
             interval=interval,
             rows=rows,
+        )
+
+        await compute_and_upsert_signals(
+            session,
+            stock_id = stock.id,
+            provider=provider,
+            interval = interval,
         )
 
         # 5) mark cache as fresh

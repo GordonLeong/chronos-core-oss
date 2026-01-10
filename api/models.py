@@ -123,6 +123,13 @@ Stock.price_cache = relationship(
     cascade="all, delete-orphan",
     lazy = "selectin"
 )
+
+Stock.signals = relationship(
+"StockSignal",
+back_populates="stock",
+cascade="all, delete-orphan",
+lazy="selectin",
+)
     
 
 
@@ -145,3 +152,24 @@ class StockOHLCV(Base):
 
 
 
+class StockSignal(Base):
+    __tablename__ ="stock_signals"
+    stock_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("stocks.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    as_of: Mapped[date] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32), primary_key=True)
+    interval: Mapped[str] = mapped_column(String(8), primary_key=True)
+
+    rsi: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    macd: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    macd_signal: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    ema_20: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    ema_50: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    bb_upper: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    bb_lower: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    
+
+    stock: Mapped["Stock"] = relationship(back_populates="signals", lazy="joined")
