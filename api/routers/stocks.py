@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,6 +7,7 @@ from db import get_session
 from repositories.stocks import get_stock_by_ticker
 from repositories.cache import get_cache_status, upsert_cache_status
 from models import CacheStatus
+from services.refresh_prices import refresh_stock_prices_background
 
 router = APIRouter(prefix="/stocks", tags =["stocks"])
 
@@ -36,7 +39,7 @@ async def get_stock_status(
 
 
 @router.post("/{ticker}/refresh", status_code=status.HTTP_202_ACCEPTED)
-async def refresh_stock_stub(
+async def refresh_stock(
     ticker: str,
     provider: str = Query("yahooquery"),
     interval: str = Query("1d"),
@@ -53,17 +56,19 @@ async def refresh_stock_stub(
         provider = provider,
         interval = interval,
         status = CacheStatus.fetching,
-        detail = "starting refresh (stub)"
-
+        detail = "refresh scheduled"
     )
 
-    row = await upsert_cache_status(
-        session, 
-        stock_id = stock.id,
-        provider = provider,
-        interval = interval,
-        status = CacheStatus.fresh,
-        detail="refresh complete(stub: no provider called)",
+    asyncio.create_task(
+        refresh_stock_prices_background(
+            ticker=stock.ticker,
+            provider=provider,
+            interval=interval,
+        )
+    )
+
+    row = await get_cache_status(
+        session, stock_id=stock.id, provider=provider, interval=interval
     )
 
 
@@ -71,8 +76,8 @@ async def refresh_stock_stub(
         "ticker": stock.ticker,
         "provider": provider,
         "interval": interval,
-        "status": row.status.value,
-        "last_fetched_at": row.last_fetched_at.isoformat() if row.last_fetched_at else None,
-        "detail": row.detail,
+        "status": row.status.value if row else CacheStatus.fetching.value,
+        "last_fetched_at": row.last_fetched_at.isoformat() if row and row.last_fetched_at else None,
+        "detail": row.detail if row else "refresh scheduled",
     }
     

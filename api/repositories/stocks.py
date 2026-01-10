@@ -103,6 +103,19 @@ async def list_universe_stocks(
     return res2.scalars().all()
 
 
+async def list_active_tickers(session: AsyncSession) -> list[str]:
+    """
+    Return distinct tickers that appear in at least one universe.
+    """
+    res = await session.execute(
+        select(Stock.ticker)
+        .join(UniverseMember, UniverseMember.stock_id == Stock.id)
+        .distinct()
+        .order_by(Stock.ticker)
+    )
+    return [row[0] for row in res.all()]
+
+
 async def remove_stock_from_universe(
     session: AsyncSession, *, universe_id: int, stock_id: int
 ) -> bool:

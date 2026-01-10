@@ -11,6 +11,7 @@ import asyncio
 from db import init_db
 from routers.universes import router as universes_router
 from routers.stocks import router as stocks_router
+from services.refresh_prices import market_refresh_loop
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chronos.main")
@@ -24,10 +25,22 @@ async def lifespan(app: FastAPI):
     logger.info("LIFESPAN: starting up - database init")
     #If init_db raises, server will not start
     await init_db()
+    stop_event = asyncio.Event()
+    refresh_task = asyncio.create_task(
+        market_refresh_loop(
+            stop_event=stop_event,
+            provider="yahooquery",
+            interval="1d",
+        )
+    )
+    app.state.refresh_stop_event = stop_event
+    app.state.refresh_task = refresh_task
     try:
         yield
     finally:
-        logger.info("LIFESPAN.shutting down")
+        logger.info("LIFESPAN: shutting down")
+        stop_event.set()
+        await refresh_task
 
 
 

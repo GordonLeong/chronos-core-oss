@@ -4,7 +4,6 @@ from services.provider_registry import PriceProvider, register_provider
 from datetime import date, datetime
 from typing import Optional, List, cast
 import pandas as pd
-from yahooquery import Ticker
 
 from ohlcv import OHLCVRow
 
@@ -35,7 +34,7 @@ class YahooQueryProvider:
         Volume may be None, if not available
         """
         tk = Ticker(ticker, asynchronous=False)
-        data = tk.history(interval="3mo")
+        data = tk.history(period="3mo", interval=interval)
 
         rows: List[OHLCVRow] = []
 
