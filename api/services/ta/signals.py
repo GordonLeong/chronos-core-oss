@@ -78,3 +78,51 @@ async def upsert_signals(
         written += 1
 
     return written
+
+
+async def list_signal_rows(
+    session: AsyncSession,
+    *,
+    stock_id: int,
+    provider: str,
+    interval: str,
+    limit: int | None = None,
+    order_desc: bool = False,
+) -> list[SignalRow]:
+    """
+    Read signal rows for one (stock, provider, interval).
+    """
+    stmt = select(StockSignal).where(
+        StockSignal.stock_id == stock_id,
+        StockSignal.provider == provider,
+        StockSignal.interval == interval,
+    )
+
+    if order_desc:
+        stmt = stmt.order_by(StockSignal.as_of.desc())
+    else:
+        stmt = stmt.order_by(StockSignal.as_of)
+
+    if limit is not None:
+        stmt = stmt.limit(limit)
+
+    result = await session.execute(stmt)
+    rows: list[SignalRow] = []
+    for rec in result.scalars().all():
+        rows.append(
+            (
+                rec.as_of,
+                rec.rsi,
+                rec.macd,
+                rec.macd_signal,
+                rec.ema_20,
+                rec.ema_50,
+                rec.bb_upper,
+                rec.bb_lower,
+            )
+        )
+
+    if order_desc and limit is not None:
+        rows.reverse()
+
+    return rows

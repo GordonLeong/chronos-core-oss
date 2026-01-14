@@ -7,8 +7,8 @@ import pandas as pd
 import pandas_ta as ta
 
 from ohlcv import OHLCVRow
-from services.signals import SignalRow
-from services.ta_registry import register_ta_provider
+from services.ta.signals import SignalRow
+from services.ta.registry import register_ta_provider
 
 
 def _to_float(value: Optional[float]) -> Optional[float]:

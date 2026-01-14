@@ -66,16 +66,22 @@ async def list_ohlcv_rows(
     provider: str,
     interval: str,
     limit: int | None = None,
+    order_desc: bool = False,
 
 ) -> list[OHLCVRow]:
     """
- Read OHLCV Rows for one(stock, provider,interval).
+    Read OHLCV rows for one (stock, provider, interval).
     """
     stmt = select(StockOHLCV).where(
         StockOHLCV.stock_id == stock_id,
         StockOHLCV.provider == provider,
         StockOHLCV.interval == interval,
-    ).order_by(StockOHLCV.as_of)
+    )
+
+    if order_desc:
+        stmt = stmt.order_by(StockOHLCV.as_of.desc())
+    else:
+        stmt = stmt.order_by(StockOHLCV.as_of)
 
     if limit is not None:
         stmt = stmt.limit(limit)
@@ -84,4 +90,6 @@ async def list_ohlcv_rows(
     rows = []
     for rec in result.scalars().all():
         rows.append((rec.as_of, rec.open, rec.high, rec.low, rec.close, rec.volume))
+    if order_desc and limit is not None:
+        rows.reverse()
     return rows

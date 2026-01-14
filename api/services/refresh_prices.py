@@ -1,7 +1,7 @@
 # api/services/refresh_prices.py
 
 from __future__ import annotations
-from services.ta_compute import compute_and_upsert_signals
+from services.ta.compute import compute_and_upsert_signals
 
 import asyncio
 import logging

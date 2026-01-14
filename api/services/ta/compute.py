@@ -3,8 +3,8 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ohlcv import list_ohlcv_rows
-from services.signals import upsert_signals
-from services.ta_registry import get_ta_provider
+from services.ta.signals import upsert_signals
+from services.ta.registry import get_ta_provider
 
 
 async def compute_and_upsert_signals(
