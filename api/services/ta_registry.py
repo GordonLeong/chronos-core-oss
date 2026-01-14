@@ -30,7 +30,7 @@ def _ensure_builtins_loaded() -> None:
         return
 
     # Import default providers for side effects (register_ta_provider)
-    from services.ta_providers import pandas_ta_provider  # noqa: F401
+    from services.providers import pandas_ta_provider  # noqa: F401
 
     _BUILTINS_LOADED = True
 
