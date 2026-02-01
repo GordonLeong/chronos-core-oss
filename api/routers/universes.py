@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Sequence, AsyncGenerator
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from repositories.stocks import (
@@ -10,6 +10,8 @@ from repositories.stocks import (
     remove_stock_from_universe,
     get_stock_by_ticker,
 )
+
+from ohlcv import list_ohlcv_rows
 
 
 from db import get_session
@@ -69,6 +71,53 @@ async def list_universes_endpoint(
 ) -> Sequence[UniverseRead]:
     rows = await list_universes(session, limit=limit, offset=offset)
     return [UniverseRead.model_validate(r) for r in rows]
+
+
+@router.get(
+        "/{universe_id}/ohlcv",
+            )
+
+async def get_universe_ohlcv(
+    universe_id: int,
+    provider: str = Query("yahooquery"),
+    interval: str = Query("1d"),
+    limit: int | None = Query(None, ge=1, le=2000),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    u = await get_universe_by_id(session, universe_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="universe not found")
+    
+    stocks = await list_universe_stocks(session,universe_id=universe_id)
+
+    data: dict[str, list[dict]] = {}
+    for stock in stocks:
+        rows = await list_ohlcv_rows(
+            session, 
+            stock_id=stock.id,
+            provider=provider,
+            interval=interval,
+            limit=limit,
+            order_desc=limit is not None,
+        )
+        data[stock.ticker]= [{
+            "date": as_of.isoformat(),
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": volume,
+        }
+         for as_of, open_, high, low, close, volume in rows
+        ]
+    return{
+        "universe_id": universe_id,
+        "provider": provider,
+        "interval": interval,
+        "data": data,
+    }
+
+    
 
 # DELETE /universes/{id}
 @router.delete(
