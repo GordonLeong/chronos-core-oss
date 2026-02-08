@@ -12,6 +12,7 @@ from repositories.stocks import (
 )
 
 from ohlcv import list_ohlcv_rows
+from services.ta.signals import list_signal_rows
 
 
 from db import get_session
@@ -117,7 +118,61 @@ async def get_universe_ohlcv(
         "data": data,
     }
 
-    
+@router.get(
+        "/{universe_id}/signals",
+)
+async def get_universe_signals(
+    universe_id: int,
+    provider: str = Query("yahooquery"),
+    interval: str = Query("1d"),
+    limit: int | None = Query(None, ge=1, le=2000),
+    session: AsyncSession = Depends(get_session),
+
+) -> dict:
+    u = await get_universe_by_id(session, universe_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="universe not found")
+    stocks = await list_universe_stocks(session, universe_id= universe_id)
+    data: dict[str, list[dict]]={}
+    for stock in stocks:
+        rows = await list_signal_rows(
+            session,
+            stock_id=stock.id,
+            provider=provider,
+            interval=interval,
+            limit=limit,
+            order_desc=limit is not None,
+        )
+        data[stock.ticker] = [
+            {
+                "as_of": as_of.isoformat(),
+                "rsi":rsi,
+                "macd":macd,
+                "macd_signal":macd_signal,
+                "ema_20": ema_20,
+                "ema_50": ema_50,
+                "bb_upper": bb_upper,
+                "bb_lower": bb_lower,
+
+            }
+            for (
+                as_of,
+                rsi,
+                macd,
+                macd_signal,
+                ema_20,
+                ema_50,
+                bb_upper,
+                bb_lower,
+
+            ) in rows
+        ]
+    return {
+        "universe_id": universe_id,
+        "provider": provider,
+        "interval": interval,
+        "data":data,
+    }
 
 # DELETE /universes/{id}
 @router.delete(
