@@ -98,6 +98,54 @@ class CacheStatus(str, enum.Enum):
     unknown = "unknown"
 
 
+class TemplateKind(str, enum.Enum):
+    risk = "risk"
+    trade = "trade"
+    strategy = "strategy"
+
+class StrategyTemplate(Base):
+    __tablename__ = "strategy_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    kind: Mapped[TemplateKind] = mapped_column(
+        SAEnum(TemplateKind, name="template_kind"),
+        nullable=False,
+        index=True,
+    )
+
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    config_json: Mapped[str] = mapped_column(String(8192), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("kind", "name","version", name="uq_template_kind_name_version"),
+    )
+
+class TemplateCreate(BaseModel):
+    kind: TemplateKind
+    name: str
+    version: int =1
+    description: Optional[str] = None
+    config_json: str
+
+class TemplateRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    kind: TemplateKind
+    name: str
+    version: int
+    description: Optional[str] = None
+    config_json: str
+    created_at: Optional[datetime] = None
+
+
 class StockPriceCache(Base):
     __tablename__ = "stock_price_cache"
 

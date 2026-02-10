@@ -1772,7 +1772,6 @@ __Scope lock:__ No IBKR/live execution work in this phase.
 - Stable API contract consumed by frontend
 - No broker adapter dependency for core workflow
 
-
 Phase 1: Dogfood — Options Core
 
 Component

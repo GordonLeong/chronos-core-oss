@@ -1,10 +1,26 @@
 
 type Universe = { id: number; name: string; description: string | null };
+type OHLCVPoint = {
+  date:string; open: number; high:number; low: number; close: number; volume: number | null;
+};
+
+type SignalPoint = {
+  as_of: string; rsi: number | null; macd: number | null; macd_signal: number | null;
+  ema_20: number | null; ema_50: number | null; bb_upper: number | null; bb_lower: number | null;
+};
+type UniverseOHLCVResponse = {
+  universe_id: number; provider: string; interval: string; data: Record<string, OHLCVPoint[]>;
+};
+type UniverseSignalsResponse = {
+  universe_id: number; provider: string; interval: string; data: Record<string, SignalPoint[]>;
+};
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 
-async function getJSON<T>(url: string): Promise<T> { 
-  const res = await fetch(url, { cache: "no-store"});
-  if (!res.ok) throw new Error(`Request failed: ${res.status} :${url}`);
+async function getJSON<T>(path: string): Promise<T> { 
+  const res = await fetch(`${API_BASE_URL}${path}`, { cache: "no-store"});
+  if (!res.ok) throw new Error(`Request failed: ${res.status} :${path}`);
   return res.json();
 }
 
@@ -12,14 +28,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ u
   const {universe} = await searchParams;
   const universes = await getJSON<Universe[]>("http://127.0.0.1:8000/universes");
   const selectedId = universe ?? universes[0]?.id?.toString();
-  const base = "http://127.0.0.1:8000";
+  // const base = "http://127.0.0.1:8000";
   const [stocks, ohlcv, signals] = selectedId
    ? await Promise.all([
-    getJSON<string[]>(`${base}/universes/${selectedId}/stocks`),
-    getJSON<{ data: Record<string, unknown[]> }>(`${base}/universes/${selectedId}/ohlcv?limit=30`),
-    getJSON<{ data: Record<string, unknown[]> }>(`${base}/universes/${selectedId}/signals?limit=30`),
-   ])
-   : [[],{ data: {} }, { data: {} }];
+       getJSON<string[]>(`/universes/${selectedId}/stocks`),
+       getJSON<UniverseOHLCVResponse>(`/universes/${selectedId}/ohlcv?limit=30`),
+       getJSON<UniverseSignalsResponse>(`/universes/${selectedId}/signals?limit=30`),
+     ])
+    :[[], { data: {} } as UniverseOHLCVResponse, { data: {} } as UniverseSignalsResponse];
+
 
    return (
     <main className="mx-auto max-w-5xl p-8 space-y-6">
