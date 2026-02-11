@@ -3,8 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query,status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_session
-from models import TemplateCreate, TemplateRead, TemplateKind
-from repositories.templates import create_template, list_templates
+from models import TemplateCreate, TemplateRead, TemplateKind, TemplateUpdate
+from repositories.templates import (create_template, list_templates, get_template_by_id, 
+                                    delete_template, update_template, get_latest_template_by_name )
 
 
 router = APIRouter(prefix="/templates", tags=["templates"])
@@ -35,3 +36,55 @@ async def list_templates_endpoint(
     )
 
     return [TemplateRead.model_validate(r) for r in rows]
+
+@router.get("/{template_id}", response_model=TemplateRead)
+async def get_template_endpoint(
+    template_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> TemplateRead:
+    row = await get_template_by_id(session, template_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="template not found")
+    return TemplateRead.model_validate(row)
+
+@router.patch("/{template_id}", response_model=TemplateRead)
+async def update_template_endpoint(
+    template_id: int,
+    payload: TemplateUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> TemplateRead:
+    try:
+        row = await update_template(session, template_id=template_id, data=payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    
+    if row is None:
+        raise HTTPException(status_code=404, detail="template not found")
+    return TemplateRead.model_validate(row)
+
+
+@router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_template_endpoint(
+    template_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    ok = await delete_template(session, template_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="template not found")
+    return None
+
+
+@router.get("/resolve/latest", response_model=TemplateRead)
+async def resolve_latest_template_endpoint(
+    kind: TemplateKind = Query(...),
+    name: str = Query(..., min_length=1),
+    session: AsyncSession = Depends(get_session),
+) -> TemplateRead:
+    row = await get_latest_template_by_name(
+        session,
+        kind = kind,
+        name = name,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail = "template not found")
+    return TemplateRead.model_validate(row)

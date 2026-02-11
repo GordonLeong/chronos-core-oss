@@ -4,8 +4,8 @@ from sqlalchemy import Column, Dialect, Integer, String, DateTime, func, Foreign
 from sqlalchemy.types import TypeDecorator, DateTime as SADateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db import Base
-from pydantic import BaseModel, ConfigDict
-import enum
+from pydantic import BaseModel, ConfigDict, field_validator
+import enum, json
 
 class Universe(Base):
     __tablename__ = "universes"
@@ -133,6 +133,19 @@ class TemplateCreate(BaseModel):
     version: int =1
     description: Optional[str] = None
     config_json: str
+    @field_validator("config_json")
+    @classmethod
+    def validate_config_json(cls,v: str) -> str:
+        try: 
+            parsed = json.loads(v)
+        except json.JSONDecodeError as exc:
+            raise ValueError("config_json must be a valid JSON string") from exc
+        if not isinstance(parsed, dict):
+            raise ValueError("config_json must decode to a JSON object")
+        return v
+    
+        
+
 
 class TemplateRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -144,6 +157,24 @@ class TemplateRead(BaseModel):
     description: Optional[str] = None
     config_json: str
     created_at: Optional[datetime] = None
+
+class TemplateUpdate(BaseModel):
+    name: str | None = None
+    version: int | None = None
+    description: Optional[str] = None
+    config_json: str | None = None
+    @field_validator("config_json")
+    @classmethod
+    def validate_config_json(cls,v: str | None) -> str | None:
+        if v is None:
+            return None
+        try: 
+            parsed = json.loads(v)
+        except json.JSONDecodeError as exc:
+            raise ValueError("config_json must be a valid JSON string") from exc
+        if not isinstance(parsed, dict):
+            raise ValueError("config_json must decode to a JSON object")
+        return v
 
 
 class StockPriceCache(Base):
