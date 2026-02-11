@@ -98,6 +98,84 @@ class CacheStatus(str, enum.Enum):
     unknown = "unknown"
 
 
+
+
+class StockPriceCache(Base):
+    __tablename__ = "stock_price_cache"
+
+    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id", ondelete="CASCADE"),primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32), primary_key=True) #e.g. yahooquery
+    interval: Mapped[str] = mapped_column(String(8), primary_key=True) #e.g. 1d, 1h
+
+    last_fetched_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime(), nullable=True)
+    status: Mapped[CacheStatus] = mapped_column(
+        SAEnum(CacheStatus, name = "cache_status"),
+        nullable = False,
+        default = CacheStatus.unknown
+    )
+    detail: Mapped[Optional[str]] = mapped_column(String(512), nullable=True) #last error or note
+
+    #optional backref
+    stock: Mapped["Stock"] = relationship(back_populates="price_cache", lazy="joined")
+
+
+Stock.price_cache = relationship(
+    "StockPriceCache",
+    back_populates="stock",
+    cascade="all, delete-orphan",
+    lazy = "selectin"
+)
+
+Stock.signals = relationship(
+"StockSignal",
+back_populates="stock",
+cascade="all, delete-orphan",
+lazy="selectin",
+)
+    
+
+
+class StockOHLCV(Base):
+    __tablename__ = "stock_ohlcv"
+    stock_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("stocks.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    as_of: Mapped[date] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32), primary_key=True)
+    interval: Mapped[str] = mapped_column(String(8), primary_key=True)
+
+    open: Mapped[float] = mapped_column(Float, nullable=False)
+    low: Mapped[float] = mapped_column(Float, nullable=False)
+    high: Mapped[float] = mapped_column(Float, nullable=False)
+    close: Mapped[float] = mapped_column(Float, nullable=False)
+    volume: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+
+
+class StockSignal(Base):
+    __tablename__ ="stock_signals"
+    stock_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("stocks.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    as_of: Mapped[date] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32), primary_key=True)
+    interval: Mapped[str] = mapped_column(String(8), primary_key=True)
+
+    rsi: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    macd: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    macd_signal: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    ema_20: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    ema_50: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    bb_upper: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    bb_lower: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
+    
+
+    stock: Mapped["Stock"] = relationship(back_populates="signals", lazy="joined")
+
 class TemplateKind(str, enum.Enum):
     risk = "risk"
     trade = "trade"
@@ -177,78 +255,57 @@ class TemplateUpdate(BaseModel):
         return v
 
 
-class StockPriceCache(Base):
-    __tablename__ = "stock_price_cache"
+class CandidateStatus(str, enum.Enum):
+    proposed = "proposed"
+    selected = "selected"
+    rejected = "rejected"
 
-    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id", ondelete="CASCADE"),primary_key=True)
-    provider: Mapped[str] = mapped_column(String(32), primary_key=True) #e.g. yahooquery
-    interval: Mapped[str] = mapped_column(String(8), primary_key=True) #e.g. 1d, 1h
+class CandidateCreate(BaseModel):
+    universe_id: int
+    template_id: int
+    ticker: str
+    score: float
+    status: CandidateStatus = CandidateStatus.proposed
+    reason_code: Optional[str] = None
+    payload_json: str
 
-    last_fetched_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime(), nullable=True)
-    status: Mapped[CacheStatus] = mapped_column(
-        SAEnum(CacheStatus, name = "cache_status"),
-        nullable = False,
-        default = CacheStatus.unknown
-    )
-    detail: Mapped[Optional[str]] = mapped_column(String(512), nullable=True) #last error or note
+class CandidateRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-    #optional backref
-    stock: Mapped["Stock"] = relationship(back_populates="price_cache", lazy="joined")
-
-
-Stock.price_cache = relationship(
-    "StockPriceCache",
-    back_populates="stock",
-    cascade="all, delete-orphan",
-    lazy = "selectin"
-)
-
-Stock.signals = relationship(
-"StockSignal",
-back_populates="stock",
-cascade="all, delete-orphan",
-lazy="selectin",
-)
-    
+    id: int
+    universe_id: int
+    template_id: int
+    ticker: str
+    as_of: datetime
+    score: float
+    status: CandidateStatus
+    reason_code: Optional[str] = None
+    payload_json: str
 
 
-class StockOHLCV(Base):
-    __tablename__ = "stock_ohlcv"
-    stock_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("stocks.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    as_of: Mapped[date] = mapped_column(primary_key=True)
-    provider: Mapped[str] = mapped_column(String(32), primary_key=True)
-    interval: Mapped[str] = mapped_column(String(8), primary_key=True)
+class TradeCandidate(Base):
+    """
+    CandidateStatus defines controlled lifecycle states for one generated candidate.
+    TradeCandidate is the persistence record for candidate pipeline output.
+    universe_id ties candidate to selection scope.
+    template_id ties candidate to the rule/template that produced it.
+    ticker records underlying symbol for quick filtering.
+    as_of stores generation timestamp.
+    score stores deterministic ranking value.
+    status tracks proposed/selected/rejected state transitions.
+    reason_code captures explainable rejection or selection label.
+    payload_json stores full candidate context snapshot for later audit/journal.
+    """
+    __tablename__ = "trade_candidates"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    universe_id: Mapped[int] = mapped_column(ForeignKey("universes.id", ondelete="CASCADE"), nullable=False, index=True)
+    template_id: Mapped[int] = mapped_column(ForeignKey("strategy_templates.id", ondelete="CASCADE"), nullable=False, index=True)
+    ticker: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+   
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    status: Mapped[CandidateStatus] = mapped_column(SAEnum(CandidateStatus, name="candidate_status"), nullable=False, default=CandidateStatus.proposed)
 
-    open: Mapped[float] = mapped_column(Float, nullable=False)
-    low: Mapped[float] = mapped_column(Float, nullable=False)
-    high: Mapped[float] = mapped_column(Float, nullable=False)
-    close: Mapped[float] = mapped_column(Float, nullable=False)
-    volume: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    reason_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    payload_json: Mapped[str] = mapped_column(String(8192), nullable=False)
 
-
-
-class StockSignal(Base):
-    __tablename__ ="stock_signals"
-    stock_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("stocks.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    as_of: Mapped[date] = mapped_column(primary_key=True)
-    provider: Mapped[str] = mapped_column(String(32), primary_key=True)
-    interval: Mapped[str] = mapped_column(String(8), primary_key=True)
-
-    rsi: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
-    macd: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
-    macd_signal: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
-    ema_20: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
-    ema_50: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
-    bb_upper: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
-    bb_lower: Mapped[Optional[float]]=mapped_column(Float, nullable=True)
-    
-
-    stock: Mapped["Stock"] = relationship(back_populates="signals", lazy="joined")

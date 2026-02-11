@@ -16,7 +16,7 @@ from services.ta.signals import list_signal_rows
 
 
 from db import get_session
-from models import UniverseCreate, UniverseRead
+from models import UniverseCreate, UniverseRead, CandidateRead, CandidateStatus
 from repositories.universes import(
     create_universe,
     get_universe_by_id,
@@ -24,6 +24,7 @@ from repositories.universes import(
     delete_universe,
 )
 
+from repositories.candidates import list_candidates_for_universe
 
 router = APIRouter(prefix="/universes", tags=["universes"])
 
@@ -248,3 +249,26 @@ async def remove_ticker_from_universe_endpoint(
         raise HTTPException(status_code=404, detail="membership not found")
     return None
 
+@router.get(
+    "/{universe_id}/candidates",
+    response_model=list[CandidateRead],
+)
+async def list_universe_candidates_endpoint(
+    universe_id: int,
+    status: CandidateStatus | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+) -> list[CandidateRead]:
+    u = await get_universe_by_id(session, universe_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="universe not found")
+
+    rows = await list_candidates_for_universe(
+        session,
+        universe_id=universe_id,
+        status=status,
+        limit=limit,
+        offset=offset,
+    )
+    return [CandidateRead.model_validate(r) for r in rows]

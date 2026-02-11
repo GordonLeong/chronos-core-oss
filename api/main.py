@@ -12,6 +12,7 @@ from db import init_db
 from routers.universes import router as universes_router
 from routers.stocks import router as stocks_router
 from routers.templates import router as templates_router
+from routers.candidates import router as candidates_router
 from services.refresh_prices import market_refresh_loop
 
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +61,7 @@ app = FastAPI(
 app.include_router(universes_router)
 app.include_router(stocks_router)
 app.include_router(templates_router)
+app.include_router(candidates_router)
 
 @app.get("/", response_class=JSONResponse)
 async def root() -> dict:
