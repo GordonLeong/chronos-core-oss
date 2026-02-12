@@ -79,7 +79,9 @@ async def generate_candidates_endpoint(
         )
 
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+            if str(exc) == "template not found":
+                raise HTTPException(status_code=404, detail="template not found")
+            raise HTTPException(status_code=400, detail=str(exc))
     return GenerateCandidateResponse(
         universe_id=payload.universe_id,
         template_id=payload.template_id,

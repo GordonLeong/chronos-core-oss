@@ -1,6 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 import asyncio
@@ -17,9 +18,6 @@ from services.refresh_prices import market_refresh_loop
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chronos.main")
-
-
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,13 +45,22 @@ async def lifespan(app: FastAPI):
         stop_event.set()
         await refresh_task
 
-
-
 app = FastAPI(
-    title="Chronos Core (v0.01)",
+    title="ChronosCore (v0.01)",
     version="0.0.1",
-    description="Minimal Chronos API backend (startup + health).",
-    lifespan = lifespan,
+    description="Minimal Chronos API Backend",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
