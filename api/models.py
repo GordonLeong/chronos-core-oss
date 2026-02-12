@@ -309,3 +309,14 @@ class TradeCandidate(Base):
     reason_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     payload_json: Mapped[str] = mapped_column(String(8192), nullable=False)
 
+class GenerateCandidateRequest(BaseModel):
+    universe_id: int
+    template_id: int
+    provider: str = "yahooquery"
+    interval: str = "1d"
+
+
+class GenerateCandidateResponse(BaseModel):
+    universe_id: int
+    template_id: int
+    created_count: int

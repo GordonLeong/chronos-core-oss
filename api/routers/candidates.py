@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from services.candidate_engine import generate_candidates_for_template
 from db import get_session
-from models import CandidateCreate, CandidateRead, CandidateStatus
+from models import CandidateCreate, CandidateRead, CandidateStatus, GenerateCandidateRequest, GenerateCandidateResponse
 from repositories.candidates import create_candidate, list_candidates_for_universe, update_candidate_status
+from repositories.universes import get_universe_by_id
 from pydantic import BaseModel
 
 
@@ -57,3 +58,30 @@ async def update_candidate_status_endpoint(
     if row is None:
         raise HTTPException(status_code=404, detail="candidate not found")
     return CandidateRead.model_validate(row)
+
+
+@router.post("/generate", response_model=GenerateCandidateResponse, status_code=status.HTTP_201_CREATED)
+async def generate_candidates_endpoint(
+    payload: GenerateCandidateRequest,
+    session: AsyncSession = Depends(get_session),
+) -> GenerateCandidateResponse:
+    u = await get_universe_by_id(session, payload.universe_id)
+    if u is None:
+        raise HTTPException(status_code=404, detail = "universe not found")
+    
+    try:
+        created = await generate_candidates_for_template(
+            session,
+            universe_id=payload.universe_id,
+            template_id=payload.template_id,
+            provider=payload.provider,
+            interval=payload.interval,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return GenerateCandidateResponse(
+        universe_id=payload.universe_id,
+        template_id=payload.template_id,
+        created_count=created,
+    )

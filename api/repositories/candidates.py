@@ -25,6 +25,7 @@ async def create_candidate(
     return row
 
 
+
 async def list_candidates_for_universe(
     session: AsyncSession,
     *,
@@ -60,3 +61,30 @@ async def update_candidate_status(
     await session.commit()
     await session.refresh(row)
     return row
+
+
+async def create_candidates_bulk(
+    session: AsyncSession,
+    items: list[CandidateCreate],
+) -> list[TradeCandidate]:
+    if not items:
+        return []
+
+    rows: list[TradeCandidate] = []
+    for data in items:
+        row = TradeCandidate(
+            universe_id=data.universe_id,
+            template_id= data.template_id,
+            ticker=data.ticker.upper().strip(),
+            score=data.score,
+            status=data.status,
+            reason_code=data.reason_code,
+            payload_json=data.payload_json,
+        )
+        session.add(row)
+        rows.append(row)
+
+    await session.commit()
+    for row in rows:
+        await session.refresh(row)
+    return rows
