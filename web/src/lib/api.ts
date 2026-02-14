@@ -31,7 +31,8 @@ export type GenerateCandidatesRequest = {
 };
 
 export type Universe = { id: number; name: string; description: string | null };
-type OHLCVPoint = {
+
+export type OHLCVPoint = {
   date:string; open: number; high:number; low: number; close: number; volume: number | null;
 };
 

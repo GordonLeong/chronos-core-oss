@@ -13,9 +13,9 @@ import {
   createUniverse,
   updateUniverse,
   addTickerToUniverse,
-
-  
+  OHLCVPoint,
 } from "@/lib/api";
+
 
 async function runCandidates(formData: FormData){
   "use server";
@@ -91,6 +91,13 @@ export default async function Home({
       listUniverseCandidates(selectedId),
      ])
     : [[], { data: {} }, { data: {} }, []];
+  
+
+
+  const ohlcvData = ohlcv.data as Record<string, OHLCVPoint[]>;
+  const ohlcvTickers = Object.keys(ohlcvData);
+  const activeTicker = ohlcvTickers[0] ?? "";
+  const activeCandles: OHLCVPoint[] = activeTicker ? ohlcvData[activeTicker] ?? [] : [];
 
    return (
      <main className="mx-auto max-w-5xl p-8 space-y-6">
@@ -153,7 +160,29 @@ export default async function Home({
       </form>
       {!hasTemplates ? <p className="text-sm text-zinc-600">No strategy templates found.</p> : null}
         <pre className="rounded border p-3 text-xs overflow-auto">stocks: {JSON.stringify(stocks, null, 2)}</pre>
-        <pre className="rounded border p-3 text-xs overflow-auto">ohlcv keys: {JSON.stringify(Object.keys(ohlcv.data), null, 2)}</pre>
+        
+
+        <section className="rounded border p-3 text-xs overflow-auto">
+          <div className="mb-2 font-semibold"> candles: {activeTicker || "none"}</div>
+          <table className="w-full text-left">
+            <thead>
+              <tr>
+                <th>date</th><th>open</th><th>high</th><th>low</th><th>close</th><th>volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeCandles.map((c)=>(
+                <tr key={c.date}>
+                  <td>{c.date}</td><td>{c.open}</td><td>{c.high}</td>
+                  <td>{c.low}</td><td>{c.close}</td><td>{c.volume ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+
+
         <pre className="rounded border p-3 text-xs overflow-auto">signal keys: {JSON.stringify(Object.keys(signals.data), null, 2)}</pre>
         <pre className="rounded border p-3 text-xs overflow-auto">candidates: {JSON.stringify(candidates, null, 2)}</pre>
 
