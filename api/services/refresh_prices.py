@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db import AsyncSessionLocal
 from models import CacheStatus
 from repositories.cache import upsert_cache_status
-from repositories.stocks import get_or_create_stock, list_active_tickers
+from repositories.stocks import get_or_create_stock, list_active_tickers, list_universe_stocks
 from ohlcv import upsert_ohlcv, OHLCVRow
 from services.provider_registry import get_provider
 
@@ -185,6 +185,32 @@ async def refresh_active_tickers(
                 )
         return results
 
+
+async def refresh_universe_tickers(
+    session: AsyncSession,
+    *,
+    universe_id: int,
+    provider: str = "yahooquery",
+    interval: str = "1d"
+) -> list[RefreshResult]:
+    stocks = await list_universe_stocks(session, universe_id=universe_id)
+    results: list[RefreshResult] = []
+
+    for stock in stocks:
+      try:
+          result = await refresh_stock_prices(
+              session,
+              ticker=stock.ticker,
+              provider=provider,
+              interval=interval,
+          )
+          results.append(result)
+      except Exception:
+          logger.exception(
+              "refresh failed for universe ticker",
+              extra={"universe_id": universe_id, "ticker": stock.ticker},
+          )
+    return results
 
 async def market_refresh_loop(
     *,

@@ -18,7 +18,11 @@ from services.provider_registry import get_provider
 
 
 from db import get_session
-from models import UniverseCreate, UniverseRead, UniverseUpdate, CandidateRead, CandidateStatus
+from models import (
+    UniverseCreate, UniverseRead, UniverseUpdate,
+    UniverseScanResponse, UniverseScanRequest,
+    CandidateRead, CandidateStatus,)
+from services.scan import run_universe_scan
 from repositories.universes import(
     create_universe,
     get_universe_by_id,
@@ -305,3 +309,31 @@ async def update_universe_endpoint(
     if row is None:
         raise HTTPException(status_code=404, detail="universe not found")
     return UniverseRead.model_validate(row)
+
+
+
+@router.post(
+    "/{universe_id}/scan",
+    response_model=UniverseScanResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def run_universe_scan_endpoint(
+    universe_id: int,
+    payload: UniverseScanRequest,
+    session: AsyncSession = Depends(get_session),
+) -> UniverseScanResponse:
+    u = await get_universe_by_id(session, universe_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="universe not found")
+    
+    try:
+        return await run_universe_scan(
+            session,
+            universe_id=universe_id,
+            req=payload,
+        )
+    except ValueError as exc:
+        if str(exc) == "template not found":
+            raise HTTPException(status_code=404, detail="template not found")
+        raise HTTPException(status_code=400,detail=str(exc))
+    

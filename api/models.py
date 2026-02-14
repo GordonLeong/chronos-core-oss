@@ -68,6 +68,19 @@ class UniverseUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
 
+class UniverseScanRequest(BaseModel):
+    template_id: int
+    provider: str = "yahooquery"
+    interval: str = "1d"
+
+class UniverseScanResponse(BaseModel):
+    universe_id: int
+    template_id: int
+    tickers_processed: int
+    ohlcv_rows_written: int
+    candidates_created: int
+    error_count: int
+
 
 class UtcDateTime(TypeDecorator):
     """
@@ -216,6 +229,7 @@ class TemplateCreate(BaseModel):
     version: int =1
     description: Optional[str] = None
     config_json: str
+
     @field_validator("config_json")
     @classmethod
     def validate_config_json(cls,v: str) -> str:
@@ -225,7 +239,30 @@ class TemplateCreate(BaseModel):
             raise ValueError("config_json must be a valid JSON string") from exc
         if not isinstance(parsed, dict):
             raise ValueError("config_json must decode to a JSON object")
+
+        rules = parsed.get("entry_rules", [])
+        if not isinstance(rules, list):
+            raise ValueError("entry_rules must be a list")
+        allowed_ops = {"lt","lte","gt","gte","eq"}
+        for i, rule in enumerate(rules):
+            if not isinstance(rule, dict):
+                raise ValueError(f"entry_rules[{i}] must be an object")
+            field = rule.get("field")
+            op = rule.get("op")
+            value = rule.get("value")
+            if not isinstance(field, str) or not field:
+                raise ValueError(f"entry_rules[{i}].field must be a non-empty string")
+            if op not in allowed_ops:
+                raise ValueError(f"entry_rules[{i}].op must be one of {sorted(allowed_ops)}")
+            if not isinstance(value, (int, float)):
+                raise ValueError(f"entry_rules[{i}].value must be numeric")
+            
+        
+        score_field = parsed.get("score_field")
+        if score_field is not None and (not isinstance(score_field, str) or not score_field):
+            raise ValueError("score_field must be a non-empty string when provided")
         return v
+    
     
         
 
