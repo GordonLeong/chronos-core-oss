@@ -13,14 +13,17 @@ from repositories.stocks import (
 
 from ohlcv import list_ohlcv_rows
 from services.ta.signals import list_signal_rows
+import asyncio
+from services.provider_registry import get_provider
 
 
 from db import get_session
-from models import UniverseCreate, UniverseRead, CandidateRead, CandidateStatus
+from models import UniverseCreate, UniverseRead, UniverseUpdate, CandidateRead, CandidateStatus
 from repositories.universes import(
     create_universe,
     get_universe_by_id,
     list_universes,
+    update_universe,
     delete_universe,
 )
 
@@ -190,24 +193,8 @@ async def delete_universe_endpoint(
     return None
 
 
-@router.post(
-    "/{universe_id}/stocks",
-    status_code = status.HTTP_201_CREATED,
-)
 
-async def add_ticker_to_universe_endpoint(
-    universe_id: int,
-    payload: AddTickerPayload,
-    session: AsyncSession = Depends(get_session),
-) -> dict:
-    # ensure that the universe exists
 
-    u = await get_universe_by_id(session, universe_id)
-    if not u:
-        raise HTTPException(status_code=404, detail="Universe not found")
-    stock = await get_or_create_stock(session, payload.ticker, name=payload.name)
-    link = await add_stock_to_universe(session, universe_id=universe_id, stock_id=stock.id)
-    return {"universe_id": link.universe_id, "stock_id": stock.id, "ticker": stock.ticker}
 
 
 @router.get(
@@ -272,3 +259,49 @@ async def list_universe_candidates_endpoint(
         offset=offset,
     )
     return [CandidateRead.model_validate(r) for r in rows]
+
+
+@router.post(
+    "/{universe_id}/stocks",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_ticker_to_universe_endpoint(
+    universe_id: int,
+    payload: AddTickerPayload,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    u = await get_universe_by_id(session, universe_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="universe not found")
+    
+    ticker = payload.ticker.strip().upper()
+    provider = get_provider("yahooquery")
+    try:
+        rows = await asyncio.to_thread(provider.fetch_ohlcv_rows, ticker, "1d")
+    except Exception:
+        rows = []
+    if not rows:
+        raise HTTPException(status_code=422, detail=f"invalid or unsupported ticker: {ticker}")
+    
+    stock = await get_or_create_stock(session, ticker, name=payload.name)
+    link = await add_stock_to_universe(session, universe_id=universe_id, stock_id=stock.id)
+    return { "universe_id" : link.universe_id, "stock_id": stock.id, "ticker": stock.ticker }
+
+@router.patch(
+    "/{universe_id}",
+    response_model=UniverseRead,
+)
+
+async def update_universe_endpoint(
+    universe_id: int,
+    payload: UniverseUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> UniverseRead:
+    row = await update_universe(
+        session,
+        universe_id=universe_id,
+        data=payload,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="universe not found")
+    return UniverseRead.model_validate(row)

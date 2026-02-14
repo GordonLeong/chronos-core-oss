@@ -64,6 +64,11 @@ class UniverseRead(BaseModel):
     created_at: Optional[datetime] = None
 
 
+class UniverseUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+
+
 class UtcDateTime(TypeDecorator):
     """
     stores datetimes as naive UTC in DB: returns tz-aware UTC datetimes in python.

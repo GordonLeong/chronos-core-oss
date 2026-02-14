@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from models import Universe, UniverseCreate
+from models import Universe, UniverseCreate, UniverseUpdate
 
 async def create_universe(session: AsyncSession, data: UniverseCreate) -> Universe:
     """
@@ -44,3 +44,22 @@ async def delete_universe(session: AsyncSession, universe_id: int) -> bool:
     await session.delete(obj)
     await session.commit()
     return True
+
+
+async def update_universe(
+    session: AsyncSession,
+    *,
+    universe_id: int,
+    data: UniverseUpdate,
+) -> Universe | None:
+    row = await session.get(Universe, universe_id)
+    if row is None:
+        return None
+    updates = data.model_dump(exclude_unset=True)
+    for k, v in updates.items():
+        setattr(row, k, v)
+
+    await session.commit()
+    await session.refresh(row)
+    return row
+
