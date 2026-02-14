@@ -8,12 +8,13 @@ import {
   getUniverseOHLCV,
   getUniverseSignals,
   listTemplates,
-  generateCandidates,
   listUniverseCandidates,
   createUniverse,
   updateUniverse,
   addTickerToUniverse,
   OHLCVPoint,
+  runUniverseScan,
+  UniverseScanResponse,
 } from "@/lib/api";
 
 
@@ -23,10 +24,14 @@ async function runCandidates(formData: FormData){
   const universe_id = Number(formData.get("universe_id"));
   const template_id = Number(formData.get("template_id"));
   if(!Number.isFinite(universe_id) || !Number.isFinite(template_id)) return;
-  await generateCandidates({ universe_id, template_id, provider: "yahooquery", interval: "1d"});
-  // Invalidate the route cache so the next render includes fresh candidates.
+  const result = await runUniverseScan(universe_id,{
+    template_id,
+    provider: "yahooquery",
+    interval: "1d"
+  });
+  const encoded = encodeURIComponent(JSON.stringify(result));
   revalidatePath("/")
-
+  redirect(`/?universe=${universe_id}&scan=${encoded}`)
 }
 
 async function createUniverseAction(formData: FormData) {
@@ -70,18 +75,27 @@ async function addTickerAction(formData: FormData) {
 }
 
 
+
+
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ universe?: string; ticker_error?: string }>;
+  searchParams: Promise<{ universe?: string; ticker_error?: string; scan?: string }>;
 }){
-  const { universe, ticker_error } = await searchParams;
+  const { universe, ticker_error, scan } = await searchParams;
   const universes = await listUniverses();
   const templates = await listTemplates("strategy");
   const hasTemplates = templates.length > 0;
   // Default to first available universe when query param is absent.
   const selectedId = Number(universe ?? universes[0]?.id ?? 0);
-  
+  let scanResult: UniverseScanResponse | null = null;
+  if (scan) {
+    try{
+      scanResult = JSON.parse(scan) as UniverseScanResponse;
+    }catch{
+      scanResult=null;
+    }
+  }
   // Fetch independent datasets in parallel for faster SSR.
   const [stocks, ohlcv, signals, candidates] = selectedId
    ? await Promise.all([
@@ -141,6 +155,18 @@ export default async function Home({
           {ticker_error}
         </p>
       ) : null}
+
+      {scanResult ? (
+        <section className="rounded border p-3 text-sm">
+          <div> scan universe:{scanResult.universe_id}</div>
+          <div> template:{scanResult.template_id}</div>
+          <div> tickers processed:{scanResult.tickers_processed}</div>
+          <div> ohlcv rows written:{scanResult.ohlcv_rows_written}</div>
+          <div> candidates created:{scanResult.candidates_created}</div>
+          <div> errors:{scanResult.error_count}</div>
+        </section>
+      ): null}
+    
 
       <form action={runCandidates} className="flex gap-2 items-center">
         <input type="hidden" name="universe_id" value={selectedId || ""} />

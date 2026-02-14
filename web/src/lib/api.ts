@@ -49,6 +49,34 @@ export type UniverseSignalsResponse = {
   universe_id: number; provider: string; interval: string; data: Record<string, SignalPoint[]>;
 };
 
+export type UniverseScanRequest ={
+  template_id: number;
+  provider?: string;
+  interval?: string;
+};
+
+export type UniverseScanResponse = {
+  universe_id: number;
+  template_id: number;
+  tickers_processed: number;
+  ohlcv_rows_written: number;
+  candidates_created: number;
+  error_count: number;
+};
+
+export async function runUniverseScan(
+  universeId: number,
+  payload: UniverseScanRequest,
+){
+  const res = await fetch(`${API_BASE}/universes/${universeId}/scan`,{
+    method: "POST",
+    headers: { "Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Run scan failed: ${res.status}`);
+  return res.json() as Promise<UniverseScanResponse>;
+}
+
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Request failed: ${res.status} ${path}`);
