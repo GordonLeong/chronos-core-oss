@@ -285,17 +285,37 @@ class TemplateUpdate(BaseModel):
     config_json: str | None = None
     @field_validator("config_json")
     @classmethod
-    def validate_config_json(cls,v: str | None) -> str | None:
+    def validate_config_json(cls, v: str | None) -> str | None:
         if v is None:
             return None
-        try: 
+        try:
             parsed = json.loads(v)
         except json.JSONDecodeError as exc:
             raise ValueError("config_json must be a valid JSON string") from exc
         if not isinstance(parsed, dict):
             raise ValueError("config_json must decode to a JSON object")
-        return v
 
+        rules = parsed.get("entry_rules", [])
+        if not isinstance(rules, list):
+            raise ValueError("entry_rules must be a list")
+        allowed_ops = {"lt", "lte", "gt", "gte", "eq"}
+        for i, rule in enumerate(rules):
+            if not isinstance(rule, dict):
+                raise ValueError(f"entry_rules[{i}] must be an object")
+            field = rule.get("field")
+            op = rule.get("op")
+            value = rule.get("value")
+            if not isinstance(field, str) or not field:
+                raise ValueError(f"entry_rules[{i}].field must be a non-empty string")
+            if op not in allowed_ops:
+                raise ValueError(f"entry_rules[{i}].op must be one of {sorted(allowed_ops)}")
+            if not isinstance(value, (int, float)):
+                raise ValueError(f"entry_rules[{i}].value must be numeric")
+
+        score_field = parsed.get("score_field")
+        if score_field is not None and (not isinstance(score_field, str) or not score_field):
+            raise ValueError("score_field must be a non-empty string when provided")
+        return v
 
 class CandidateStatus(str, enum.Enum):
     proposed = "proposed"
