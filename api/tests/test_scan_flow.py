@@ -31,3 +31,34 @@ async def test_add_invalid_ticker_returns_422():
         res = await ac.post(f"/universes/{universe_id}/stocks", json={"ticker": "NOTAREALTICKERXYZ"})
     assert res.status_code == 422
     assert "invalid or unsupported ticker" in res.json()["detail"]
+
+
+@pytest.mark.anyio
+async def test_universe_scan_happy_path_returns_201():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        u = await ac.post("/universes", json={"name": "scan-happy-universe"})
+        assert u.status_code == 201
+        universe_id = u.json()["id"]
+
+        t = await ac.post(
+            "/templates",
+            json={
+                "kind":"strategy",
+                "name": "scan-happy-template",
+                "version": 1,
+                "config_json": "{\"entry_rules\":[]}"
+            },
+        )
+        assert t.status_code == 201
+        template_id = t.json()["id"]
+
+        res = await ac.post(f"/universes/{universe_id}/scan", json={"template_id": template_id})
+
+    assert res.status_code == 201
+    body = res.json()
+    assert body["universe_id"] == universe_id
+    assert body["template_id"] == template_id
+    assert set(body.keys()) == {
+        "universe_id","template_id","tickers_processed",
+        "ohlcv_rows_written","candidates_created", "error_count",
+    }

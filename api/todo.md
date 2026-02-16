@@ -1,70 +1,73 @@
 # chronos-core-oss
 
+# TODO — Current Slice (Target: ~6 Hours)
 
-# TODO — Next 2–3 Days (Target: ~6 Hours)
+## Explicit Goal (Current Priority)
 
-## Scope Goal
+Deliver a coherent, modern workflow UI on top of the backend already built:
+`Select/Create Universe -> Add Ticker (with validation feedback) -> Select/Edit Template Rules -> Run Scan -> Review Candidates`
 
-Ship one clean vertical slice:
-`Universe -> Refresh/Signals -> Template Rules -> Generate Candidates -> Visible Results`
+This means reducing `web/src/app/page.tsx` complexity and replacing debug-style output with focused workflow panels.
 
 ## Time Budget
 
-`6.0h total`
+`~6.0h total`
 
-## Checklist
+## Status Snapshot
 
-- [ ] `1) Backend: Add scan orchestration endpoint` (`~1.5h`)
+- [x] `Backend: Scan orchestration endpoint` (`POST /universes/{universe_id}/scan`)
+- [x] `Backend: Template rule shape validation` (`entry_rules` checks in create/update)
+- [x] `Backend integration tests exist` (invalid ticker / missing universe / missing template / scan happy path)
+- [ ] `Backend: Scan run telemetry` (`scan_runs` + `scan_run_id` not implemented yet)
+- [ ] `Frontend: Workflow-first UI` (still mixed debug + action logic in `page.tsx`)
+- [ ] `Frontend: Template rule editor` (still JSON-driven)
+
+## Checklist (Execution Order)
+
+- [ ] `1) Frontend: Split page into workflow panels` (`~1.25h`)
 Done when:
-`POST /universes/{universe_id}/scan` exists and runs refresh + signal compute + candidate generation in one call.
-Response includes:
-`universe_id`, `template_id`, `tickers_processed`, `ohlcv_rows_written`, `candidates_created`, `errors`.
-
-- [ ] `2) Backend: Add scan run telemetry` (`~0.75h`)
-Done when:
-A `scan_runs` table (or equivalent) stores start/end/status/metrics/error text.
-`/scan` returns `scan_run_id`.
-
-- [ ] `3) Backend: Tighten template rule validation` (`~0.75h`)
-Done when:
-Template create/update rejects invalid `entry_rules` shape (missing `field/op/value`, unknown `op`, non-numeric `value`).
-Returns deterministic `422` detail.
-
-- [ ] `4) Frontend: Universe manager UX polish` (`~0.75h`)
-Done when:
-Create/update/add ticker forms show visible success/error feedback.
-Invalid ticker message is rendered in-page (not only logs/URL).
-
-- [ ] `5) Frontend: Replace debug blocks with workflow panels` (`~1.0h`)
-Done when:
-Page has 4 sections:
+`web/src/app/page.tsx` becomes composition-only, with feature sections for:
 `Universe`, `Template`, `Run Scan`, `Candidates`.
-`signal keys` debug text removed or moved behind a dev toggle.
+`stocks` JSON and `signal keys` debug blocks are removed from the main flow.
 
-- [ ] `6) Frontend: Template rule editor (minimal v1)` (`~0.75h`)
+- [ ] `2) Frontend: Move server actions out of page` (`~0.75h`)
 Done when:
-User can add/remove rules:
-`field` dropdown, `op` dropdown, `value` input.
-Saves template via existing `/templates` endpoint.
-No raw JSON required for normal flow.
+Server actions move to `web/src/app/actions.ts` (or similar) and `page.tsx` only loads data and renders sections.
 
-- [ ] `7) Tests: Integration first` (`~0.5h`)
+- [ ] `3) Frontend: Universe feedback polish` (`~0.75h`)
 Done when:
-At least these backend integration tests pass:
-`invalid ticker -> 422`
-`scan happy path -> 201`
-`missing template -> 404`
-`missing universe -> 404`
+Create/update/add ticker each show visible in-page success/error messages.
+Invalid ticker remains explicit and actionable.
 
-## Non-Goals (for this 6h window)
+- [ ] `4) Frontend: Template rule editor (minimal)` (`~1.25h`)
+Done when:
+User can add/remove/edit rules with `field/op/value` controls.
+Save uses existing `/templates` API without requiring raw JSON editing.
+
+- [ ] `5) Backend: Scan run telemetry` (`~1.25h`)
+Done when:
+A `scan_runs` table (or equivalent) tracks `started_at`, `ended_at`, `status`, metrics, and error text.
+`POST /universes/{id}/scan` returns `scan_run_id`.
+
+- [ ] `6) Tests: Cover updated scan + UI-facing contracts` (`~0.75h`)
+Done when:
+Backend tests verify telemetry contract and deterministic error mapping.
+Frontend contract assumptions (response shape) are documented and checked.
+
+## Non-Goals (Current Slice)
 
 - Broker integration
-- Advanced charting/candlestick rendering
-- New TA indicators beyond current set
-- Full E2E browser automation (can be next block)
+- Candlestick chart rendering
+- Additional TA packages/indicators
+- Full E2E browser automation
 
-## End-of-Window Acceptance
+## End-of-Slice Acceptance
 
-- [ ] From UI, user can:
-`create universe -> add valid ticker -> define template rule (e.g., RSI > 75) -> run scan -> see candidate results`
-- [ ] Failures are explicit and actionable (no silent no-op paths).
+- [ ] UI flow is linear and understandable for non-React users:
+`create/select universe -> add ticker -> choose/edit template rules -> run scan -> view candidates`
+- [ ] No silent no-op actions.
+- [ ] Core failures are visible in-page with actionable copy.
+
+## Next Action (Do This First)
+
+`Frontend Step 1`: split `web/src/app/page.tsx` into 4 workflow panels and remove debug blocks from the primary user path.

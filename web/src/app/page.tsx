@@ -86,6 +86,24 @@ export default async function Home({
   const universes = await listUniverses();
   const templates = await listTemplates("strategy");
   const hasTemplates = templates.length > 0;
+
+
+ const selectedTemplateId = templates[0]?.id ?? null;
+ const selectedTemplate = selectedTemplateId
+    ? templates.find((t) => t.id === selectedTemplateId) ?? null
+    : null;
+
+  let selectedTemplateConfig: { entry_rules?: unknown[]; score_field?: string } | null = null;
+  if (selectedTemplate) {
+    try {
+      selectedTemplateConfig = JSON.parse(selectedTemplate.config_json) as {
+        entry_rules?: unknown[];
+        score_field?: string;
+      };
+    } catch {
+      selectedTemplateConfig = null;
+    }
+  }
   // Default to first available universe when query param is absent.
   const selectedId = Number(universe ?? universes[0]?.id ?? 0);
   let scanResult: UniverseScanResponse | null = null;
@@ -150,6 +168,7 @@ export default async function Home({
       ) : null}
     </div>
 
+
       {ticker_error ? (
         <p className="rounded border border-red-300 bg-red-50 p-2 text-sm text-red-700">
           {ticker_error}
@@ -167,7 +186,20 @@ export default async function Home({
         </section>
       ): null}
     
-
+     <section className="rounded border p-3 text-sm">
+        <div className="mb-2 font-semibold">Template</div>
+        {!selectedTemplate ? (
+          <p className="text-zinc-600">No strategy templates available.</p>
+        ) : (
+          <>
+            <div>name: {selectedTemplate.name} v{selectedTemplate.version}</div>
+            <div>score_field: {selectedTemplateConfig?.score_field ?? "-"}</div>
+            <pre className="mt-2 rounded border p-2 text-xs overflow-auto">
+              {JSON.stringify(selectedTemplateConfig?.entry_rules ?? [], null, 2)}
+            </pre>
+          </>
+        )}
+      </section>
       <form action={runCandidates} className="flex gap-2 items-center">
         <input type="hidden" name="universe_id" value={selectedId || ""} />
         <select
@@ -210,7 +242,28 @@ export default async function Home({
 
 
         <pre className="rounded border p-3 text-xs overflow-auto">signal keys: {JSON.stringify(Object.keys(signals.data), null, 2)}</pre>
-        <pre className="rounded border p-3 text-xs overflow-auto">candidates: {JSON.stringify(candidates, null, 2)}</pre>
+        <section className="rounded border p-3 text-sm">
+          <div className="mb-2 font-semibold">Candidates</div>
+          {candidates.length === 0 ? (
+            <p className="text-zinc-600">No candidates yet. Run a scan.</p>
+          ) : (
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr><th>ticker</th><th>score</th><th>status</th><th>reason</th></tr>
+              </thead>
+              <tbody>
+                {candidates.map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.ticker}</td>
+                    <td>{c.score.toFixed(2)}</td>
+                    <td>{c.status}</td>
+                    <td>{c.reason_code ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
 
      </main>
    );
