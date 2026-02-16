@@ -1,5 +1,4 @@
 
-import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -16,7 +15,12 @@ import {
   runUniverseScan,
   UniverseScanResponse,
 } from "@/lib/api";
-
+import { UniversePanel } from "@/features/universe/UniversePanel";
+import { UniverseFormPanel } from "@/features/universe/UniverseFormPanel";
+import { TemplatePanel} from "@/features/template/TemplatePanel";
+import { RunScanPanel } from "@/features/scan/RunScanPanel";
+import { CandidatesPanel } from "@/features/candidates/CandidatesPanel";
+import { parseTemplateConfig, type TemplateConfig } from "@/features/template/config";
 
 async function runCandidates(formData: FormData){
   "use server";
@@ -85,25 +89,12 @@ export default async function Home({
   const { universe, ticker_error, scan } = await searchParams;
   const universes = await listUniverses();
   const templates = await listTemplates("strategy");
-  const hasTemplates = templates.length > 0;
+  
+  const selectedTemplate = templates[0] ?? null;
 
-
- const selectedTemplateId = templates[0]?.id ?? null;
- const selectedTemplate = selectedTemplateId
-    ? templates.find((t) => t.id === selectedTemplateId) ?? null
+  const selectedTemplateConfig: TemplateConfig | null = selectedTemplate
+    ? parseTemplateConfig(selectedTemplate.config_json)
     : null;
-
-  let selectedTemplateConfig: { entry_rules?: unknown[]; score_field?: string } | null = null;
-  if (selectedTemplate) {
-    try {
-      selectedTemplateConfig = JSON.parse(selectedTemplate.config_json) as {
-        entry_rules?: unknown[];
-        score_field?: string;
-      };
-    } catch {
-      selectedTemplateConfig = null;
-    }
-  }
   // Default to first available universe when query param is absent.
   const selectedId = Number(universe ?? universes[0]?.id ?? 0);
   let scanResult: UniverseScanResponse | null = null;
@@ -116,12 +107,12 @@ export default async function Home({
   }
   // Fetch independent datasets in parallel for faster SSR.
   const [stocks, ohlcv, signals, candidates] = selectedId
-   ? await Promise.all([
-      listUniverseStocks(Number(selectedId)),
-      getUniverseOHLCV(Number(selectedId),30),
-      getUniverseSignals(Number(selectedId),30),
-      listUniverseCandidates(selectedId),
-     ])
+    ? await Promise.all([
+        listUniverseStocks(selectedId),
+        getUniverseOHLCV(selectedId, 30),
+        getUniverseSignals(selectedId, 30),
+        listUniverseCandidates(selectedId),
+      ])
     : [[], { data: {} }, { data: {} }, []];
   
 
@@ -135,135 +126,51 @@ export default async function Home({
      <main className="mx-auto max-w-5xl p-8 space-y-6">
       <h1 className="text-2xl font-semibold">Chronos</h1>
 
-      <div className="flex gap-2 flex-wrap">
-        {universes.map((u) => (
-          <Link key={u.id} href={`/?universe=${u.id}`} className={`rounded border px-3 py-1 ${selectedId === u.id ? "bg-zinc-900 text-white" : ""}`}>
-            {u.name}
-          </Link>
-        ))}
-      </div>
-
-      <div className="rounded border p-3 space-y-3">
-      <form action={createUniverseAction} className="flex gap-2 flex-wrap items-center">
-        <input name="name" placeholder="New universe name" className="rounded border px-2 py-1" />
-        <input name="description" placeholder="Description (optional)" className="rounded border px-2 py-1" />
-        <button type="submit" className="rounded border px-3 py-1">Create Universe</button>
-      </form>
-
-      {selectedId ? (
-        <form action={updateUniverseAction} className="flex gap-2 flex-wrap items-center">
-          <input type="hidden" name="universe_id" value={selectedId} />
-          <input name="name" placeholder="Rename selected universe" className="rounded border px-2 py-1" />
-          <input name="description" placeholder="Update description" className="rounded border px-2 py-1" />
-          <button type="submit" className="rounded border px-3 py-1">Update Universe</button>
-        </form>
-      ) : null}
-
-      {selectedId ? (
-        <form action={addTickerAction} className="flex gap-2 flex-wrap items-center">
-          <input type="hidden" name="universe_id" value={selectedId} />
-          <input name="ticker" placeholder="Add ticker (e.g. AAPL)" className="rounded border px-2 py-1" />
-          <button type="submit" className="rounded border px-3 py-1">Add Ticker</button>
-        </form>
-      ) : null}
-    </div>
+      <UniversePanel universes={universes} selectedId={selectedId}/>
+      <UniverseFormPanel
+        selectedId={selectedId}
+        tickerError={ticker_error}
+        createAction={createUniverseAction}
+        updateAction={updateUniverseAction}
+        addTickerAction={addTickerAction}     
+      />
 
 
-      {ticker_error ? (
-        <p className="rounded border border-red-300 bg-red-50 p-2 text-sm text-red-700">
-          {ticker_error}
-        </p>
-      ) : null}
-
-      {scanResult ? (
-        <section className="rounded border p-3 text-sm">
-          <div> scan universe:{scanResult.universe_id}</div>
-          <div> template:{scanResult.template_id}</div>
-          <div> tickers processed:{scanResult.tickers_processed}</div>
-          <div> ohlcv rows written:{scanResult.ohlcv_rows_written}</div>
-          <div> candidates created:{scanResult.candidates_created}</div>
-          <div> errors:{scanResult.error_count}</div>
-        </section>
-      ): null}
-    
-     <section className="rounded border p-3 text-sm">
-        <div className="mb-2 font-semibold">Template</div>
-        {!selectedTemplate ? (
-          <p className="text-zinc-600">No strategy templates available.</p>
-        ) : (
-          <>
-            <div>name: {selectedTemplate.name} v{selectedTemplate.version}</div>
-            <div>score_field: {selectedTemplateConfig?.score_field ?? "-"}</div>
-            <pre className="mt-2 rounded border p-2 text-xs overflow-auto">
-              {JSON.stringify(selectedTemplateConfig?.entry_rules ?? [], null, 2)}
-            </pre>
-          </>
-        )}
-      </section>
-      <form action={runCandidates} className="flex gap-2 items-center">
-        <input type="hidden" name="universe_id" value={selectedId || ""} />
-        <select
-          name="template_id"
-          className="rounded border px-2 py-1"
-          defaultValue={templates[0]?.id ?? ""}
-          disabled={!hasTemplates}
-        >
-          {templates.map((t) => (
-            <option key={t.id} value={t.id}>{t.name} v{t.version}</option>
-          ))}
-        </select>
-        <button type="submit" className="rounded border px-3 py-1" disabled={!hasTemplates}>
-          Run Candidates
-        </button>
-      </form>
-      {!hasTemplates ? <p className="text-sm text-zinc-600">No strategy templates found.</p> : null}
-        <pre className="rounded border p-3 text-xs overflow-auto">stocks: {JSON.stringify(stocks, null, 2)}</pre>
-        
-
-        <section className="rounded border p-3 text-xs overflow-auto">
-          <div className="mb-2 font-semibold"> candles: {activeTicker || "none"}</div>
-          <table className="w-full text-left">
-            <thead>
-              <tr>
-                <th>date</th><th>open</th><th>high</th><th>low</th><th>close</th><th>volume</th>
+      <TemplatePanel
+      selectedTemplate={selectedTemplate}
+      selectedTemplateConfig={selectedTemplateConfig}
+      />
+      <RunScanPanel
+      selectedId={selectedId}
+      templates={templates}
+      scanResult={scanResult}
+      action={runCandidates}
+      />
+      <section className="rounded border p-3 text-xs space-y-2">
+        <div className="font-semibold">Market Data (Debug)</div>
+        <div>stocks: {stocks.length ? stocks.join(", ") : "-"}</div>
+        <div>signal keys: {Object.keys(signals.data).join(", ") || "-"}</div>
+        <div>candles: {activeTicker || "none"}</div>
+        <table className="w-full text-left">
+          <thead>
+            <tr>
+              <th>date</th><th>open</th><th>high</th><th>low</th><th>close</th><th>volume</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activeCandles.map((c) => (
+              <tr key={c.date}>
+                <td>{c.date}</td><td>{c.open}</td><td>{c.high}</td>
+                <td>{c.low}</td><td>{c.close}</td><td>{c.volume ?? "-"}</td>
               </tr>
-            </thead>
-            <tbody>
-              {activeCandles.map((c)=>(
-                <tr key={c.date}>
-                  <td>{c.date}</td><td>{c.open}</td><td>{c.high}</td>
-                  <td>{c.low}</td><td>{c.close}</td><td>{c.volume ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      <CandidatesPanel candidates={candidates} />
+     
 
-
-
-        <pre className="rounded border p-3 text-xs overflow-auto">signal keys: {JSON.stringify(Object.keys(signals.data), null, 2)}</pre>
-        <section className="rounded border p-3 text-sm">
-          <div className="mb-2 font-semibold">Candidates</div>
-          {candidates.length === 0 ? (
-            <p className="text-zinc-600">No candidates yet. Run a scan.</p>
-          ) : (
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr><th>ticker</th><th>score</th><th>status</th><th>reason</th></tr>
-              </thead>
-              <tbody>
-                {candidates.map((c) => (
-                  <tr key={c.id}>
-                    <td>{c.ticker}</td>
-                    <td>{c.score.toFixed(2)}</td>
-                    <td>{c.status}</td>
-                    <td>{c.reason_code ?? "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
+      
 
      </main>
    );
