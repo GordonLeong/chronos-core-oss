@@ -1,6 +1,6 @@
 # chronos-core-oss
 
-# TODO — Current Slice (Target: ~6 Hours)
+## TODO — Current Slice (Target: ~6 Hours)
 
 ## Explicit Goal (Current Priority)
 

@@ -1,10 +1,6 @@
 import type { Template } from "@/lib/api";
 import type { TemplateConfig } from "@/features/template/config";
 
-export type TemplateConfig = {
-  entry_rules?: unknown[];
-  score_field?: string;
-};
 
 type TemplatePanelProps = {
   selectedTemplate: Template | null;
