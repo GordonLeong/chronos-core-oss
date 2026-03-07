@@ -24,7 +24,6 @@ export async function runCandidates(formData: FormData) {
 }
 
 export async function createUniverseAction(formData: FormData) {
-    "use server"
     const name = String(formData.get("name") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim() || null;
     if (!name) return;
