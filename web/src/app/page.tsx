@@ -1,16 +1,18 @@
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import {
   listUniverses,
   listTemplates,
   listUniverseCandidates,
-  createUniverse,
-  updateUniverse,
-  addTickerToUniverse,
-  runUniverseScan,
   UniverseScanResponse,
 } from "@/lib/api";
+
+import {
+  runCandidates,
+  createUniverseAction,
+  updateUniverseAction,
+  addTickerAction,
+} from "./actions";
+
 import { UniversePanel } from "@/features/universe/UniversePanel";
 import { UniverseFormPanel } from "@/features/universe/UniverseFormPanel";
 import { TemplatePanel } from "@/features/template/TemplatePanel";
@@ -18,61 +20,8 @@ import { RunScanPanel } from "@/features/scan/RunScanPanel";
 import { CandidatesPanel } from "@/features/candidates/CandidatesPanel";
 import { parseTemplateConfig, type TemplateConfig } from "@/features/template/config";
 
-async function runCandidates(formData: FormData) {
-  "use server";
-  // FormData values are string-like; convert explicitly before validation.
-  const universe_id = Number(formData.get("universe_id"));
-  const template_id = Number(formData.get("template_id"));
-  if (!Number.isFinite(universe_id) || !Number.isFinite(template_id)) return;
-  const result = await runUniverseScan(universe_id, {
-    template_id,
-    provider: "yahooquery",
-    interval: "1d"
-  });
-  const encoded = encodeURIComponent(JSON.stringify(result));
-  revalidatePath("/")
-  redirect(`/?universe=${universe_id}&scan=${encoded}`)
-}
 
-async function createUniverseAction(formData: FormData) {
-  "use server";
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim() || null;
-  if (!name) return;
-  await createUniverse({ name, description });
-  revalidatePath("/");
-}
 
-async function updateUniverseAction(formData: FormData) {
-  "use server";
-  const universeId = Number(formData.get("universe_id"));
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim() || null;
-  if (!Number.isFinite(universeId)) return;
-  // PATCH payload is partial: only include fields the user actually intended to change.
-  const payload: { name?: string; description?: string | null } = {};
-  if (name) payload.name = name;
-  if (formData.has("description")) payload.description = description;
-  if (Object.keys(payload).length === 0) return;
-  await updateUniverse(universeId, payload);
-  revalidatePath("/");
-}
-
-async function addTickerAction(formData: FormData) {
-  "use server";
-  const universeId = Number(formData.get("universe_id"));
-  const ticker = String(formData.get("ticker") ?? "").trim();
-  if (!Number.isFinite(universeId) || !ticker) return;
-  try {
-    await addTickerToUniverse(universeId, ticker);
-  } catch (err) {
-    // Bubble backend validation error into URL so the server component can render feedback.
-    const message = err instanceof Error ? err.message : "failed to add ticker";
-    redirect(`/?universe=${universeId}&ticker_error=${encodeURIComponent(message)}`);
-  }
-  revalidatePath("/");
-  redirect(`/?universe=${universeId}`);
-}
 
 
 
@@ -80,9 +29,16 @@ async function addTickerAction(formData: FormData) {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ universe?: string; ticker_error?: string; scan?: string }>;
+  searchParams: Promise<{
+    universe?: string;
+    ticker_error?: string;
+    ticker_success?: string;
+    universe_error?: string;
+    universe_success?: string;
+    scan?: string
+  }>;
 }) {
-  const { universe, ticker_error, scan } = await searchParams;
+  const { universe, ticker_error, ticker_success, universe_error, universe_success, scan } = await searchParams;
   const universes = await listUniverses();
   const templates = await listTemplates("strategy");
 
@@ -116,6 +72,9 @@ export default async function Home({
       <UniverseFormPanel
         selectedId={selectedId}
         tickerError={ticker_error}
+        tickerSuccess={ticker_success}
+        universeError={universe_error}
+        universeSuccess={universe_success}
         createAction={createUniverseAction}
         updateAction={updateUniverseAction}
         addTickerAction={addTickerAction}

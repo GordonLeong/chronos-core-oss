@@ -1,4 +1,4 @@
-# chronos-core-oss
+git # chronos-core-oss
 
 ## TODO — Current Slice (Target: ~6 Hours)
 
@@ -24,17 +24,17 @@ This means reducing `web/src/app/page.tsx` complexity and replacing debug-style 
 
 ## Checklist (Execution Order)
 
-- [ ] `1) Frontend: Split page into workflow panels` (`~1.25h`)
+- [-x] `1) Frontend: Split page into workflow panels` (`~1.25h`)
 Done when:
 `web/src/app/page.tsx` becomes composition-only, with feature sections for:
 `Universe`, `Template`, `Run Scan`, `Candidates`.
 `stocks` JSON and `signal keys` debug blocks are removed from the main flow.
 
-- [ ] `2) Frontend: Move server actions out of page` (`~0.75h`)
+- [-x] `2) Frontend: Move server actions out of page` (`~0.75h`)
 Done when:
 Server actions move to `web/src/app/actions.ts` (or similar) and `page.tsx` only loads data and renders sections.
 
-- [ ] `3) Frontend: Universe feedback polish` (`~0.75h`)
+- [-x] `3) Frontend: Universe feedback polish` (`~0.75h`)
 Done when:
 Create/update/add ticker each show visible in-page success/error messages.
 Invalid ticker remains explicit and actionable.

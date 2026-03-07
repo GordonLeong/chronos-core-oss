@@ -27,8 +27,15 @@ export async function createUniverseAction(formData: FormData) {
     const name = String(formData.get("name") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim() || null;
     if (!name) return;
-    await createUniverse({ name, description });
+    try {
+        await createUniverse({ name, description });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to create universe";
+        redirect(`/?universe_error=${encodeURIComponent(message)}`);
+    }
     revalidatePath("/");
+    redirect(`/?universe_success=${encodeURIComponent("Universe created")}`)
+
 }
 
 export async function updateUniverseAction(formData: FormData) {
@@ -45,8 +52,15 @@ export async function updateUniverseAction(formData: FormData) {
     if (name) payload.name = name;
     if (formData.has("description")) payload.description = description;
     if (Object.keys(payload).length === 0) return;
-    await updateUniverse(universeId, payload);
+    try {
+        await updateUniverse(universeId, payload);
+        revalidatePath("/");
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to update universe";
+        redirect(`/?universe_error=${encodeURIComponent(message)}`);
+    }
     revalidatePath("/");
+    redirect(`/?universe_success=${encodeURIComponent("Universe updated")}`);
 }
 
 export async function addTickerAction(formData: FormData) {
@@ -62,5 +76,5 @@ export async function addTickerAction(formData: FormData) {
         redirect(`/?universe=${universeId}&ticker_error=${encodeURIComponent(message)}`)
     }
     revalidatePath("/");
-    redirect(`/?universe=${universeId}`);
+    redirect(`/?universe=${universeId}&ticker_success=${encodeURIComponent("Ticker added")}`);
 }
