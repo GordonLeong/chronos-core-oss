@@ -156,6 +156,28 @@ external regime products,
 
 research and optimization layers.
 
+3.7 Adapter-first external boundaries
+
+Every external dependency that can change over time must sit behind a narrow adapter contract.
+
+This applies at minimum to:
+
+price data,
+
+options chain data,
+
+venue rules and profiles,
+
+execution,
+
+account and position state.
+
+For MVP, Chronos should use Yahoo Finance-backed adapters for stock candles and options chain data because the product is not paying for market data yet.
+
+The decision engine, strategy templates, risk logic, and lifecycle logic must not call Yahoo Finance directly.
+
+This is non-negotiable because the product is expected to swap in tastytrade broker data and potentially paid market data later without rewriting strategy or risk code.
+
 4. Product Surfaces
 
 Chronos comprises three product surfaces. Only the first two are primary within the MVP.
@@ -637,6 +659,10 @@ simulation and broker paper modes,
 decision ledger,
 
 no-action diagnostics,
+
+adapter-first market and execution boundaries,
+
+Yahoo Finance adapters for stock candles and options chain data in MVP,
 
 basic AI-assisted configuration diagnosis and explanation.
 
