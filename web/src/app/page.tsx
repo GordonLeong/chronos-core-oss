@@ -11,6 +11,7 @@ import {
   createUniverseAction,
   updateUniverseAction,
   addTickerAction,
+  updateTemplateAction,
 } from "./actions";
 
 import { UniversePanel } from "@/features/universe/UniversePanel";
@@ -35,13 +36,14 @@ export default async function Home({
     ticker_success?: string;
     universe_error?: string;
     universe_success?: string;
-    scan?: string
+    scan?: string;
+    template_error?: string;
+    template_success?: string;
   }>;
 }) {
-  const { universe, ticker_error, ticker_success, universe_error, universe_success, scan } = await searchParams;
+  const { universe, ticker_error, ticker_success, universe_error, universe_success, scan, template_error, template_success } = await searchParams;
   const universes = await listUniverses();
   const templates = await listTemplates("strategy");
-
   const selectedTemplate = templates[0] ?? null;
 
   const selectedTemplateConfig: TemplateConfig | null = selectedTemplate
@@ -65,8 +67,8 @@ export default async function Home({
 
 
   return (
-    <main className="mx-auto max-w-5xl p-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Chronos</h1>
+    <main className="mx-auto max-w-5xl px-4 py-10 space-y-5">
+      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Chronos</h1>
 
       <UniversePanel universes={universes} selectedId={selectedId} />
       <UniverseFormPanel
@@ -84,6 +86,9 @@ export default async function Home({
       <TemplatePanel
         selectedTemplate={selectedTemplate}
         selectedTemplateConfig={selectedTemplateConfig}
+        templateSuccess={template_success}
+        templateError={template_error}
+        updateAction={updateTemplateAction}
       />
       <RunScanPanel
         selectedId={selectedId}

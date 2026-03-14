@@ -74,6 +74,7 @@ class UniverseScanRequest(BaseModel):
     interval: str = "1d"
 
 class UniverseScanResponse(BaseModel):
+    scan_run_id: int
     universe_id: int
     template_id: int
     tickers_processed: int
@@ -199,6 +200,30 @@ class TemplateKind(str, enum.Enum):
     trade = "trade"
     strategy = "strategy"
 
+
+class ScanStatus(str, enum.Enum):
+    running ="running"
+    completed="completed"
+    failed="failed"
+
+class ScanRun(Base):
+    __tablename__ = "scan_runs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    universe_id: Mapped[int] = mapped_column(ForeignKey("universes.id", ondelete="CASCADE"), nullable=False, index=True)
+    template_id: Mapped[int] = mapped_column(ForeignKey("strategy_templates.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    status: Mapped[ScanStatus] = mapped_column(SAEnum(ScanStatus, name="scan_status"), nullable=False, default=ScanStatus.running)
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    tickers_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ohlcv_rows_written: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    candidates_created: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    
+    error_text: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+
 class StrategyTemplate(Base):
     __tablename__ = "strategy_templates"
 
@@ -243,7 +268,7 @@ class TemplateCreate(BaseModel):
         rules = parsed.get("entry_rules", [])
         if not isinstance(rules, list):
             raise ValueError("entry_rules must be a list")
-        allowed_ops = {"lt","lte","gt","gte","eq"}
+        allowed_ops = {"<", "<=", ">", ">=", "==", "!="}
         for i, rule in enumerate(rules):
             if not isinstance(rule, dict):
                 raise ValueError(f"entry_rules[{i}] must be an object")
@@ -298,7 +323,7 @@ class TemplateUpdate(BaseModel):
         rules = parsed.get("entry_rules", [])
         if not isinstance(rules, list):
             raise ValueError("entry_rules must be a list")
-        allowed_ops = {"lt", "lte", "gt", "gte", "eq"}
+        allowed_ops = {"<", "<=", ">", ">=", "==", "!="}
         for i, rule in enumerate(rules):
             if not isinstance(rule, dict):
                 raise ValueError(f"entry_rules[{i}] must be an object")

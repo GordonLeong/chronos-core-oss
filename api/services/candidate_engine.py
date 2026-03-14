@@ -8,7 +8,7 @@ from services.ta.signals import list_signal_rows
 from models import CandidateCreate, CandidateStatus
 
 # Rule schema expected from template_config_json["entry_rules"]:
-# {"field": "rsi", "op": "lt", "value": 35}
+# {"field": "rsi", "op": "<", "value": 35}
 def _rule_passes(rule: dict, latest: dict) -> bool:
     # Pull the rule parts explicitly so each decision branch is readable.
     field = rule.get("field")
@@ -21,16 +21,18 @@ def _rule_passes(rule: dict, latest: dict) -> bool:
     if actual is None:
         return False
     # Simple deterministic operator mapping. Unknown operator => fail closed.
-    if op == "lt":
+    if op == "<":
         return actual < value
-    if op == "lte":
+    if op == "<=":
         return actual <= value
-    if op == "gt":
+    if op == ">":
         return actual > value
-    if op == "gte":
+    if op == ">=":
         return actual >= value
-    if op == "eq":
+    if op == "==":
         return actual == value
+    if op == "!=":
+        return actual != value
     return False
 
 def build_candidates_from_template(

@@ -2,15 +2,27 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"
 
 export type TemplateKind = "strategy" | "trade" | "risk";
 
-export type Template ={
-    id: number;
-    kind: TemplateKind;
-    name: string;
-    version: number;
-    description: string | null;
-    config_json: string;
-    created_at: string | null;
+export type Template = {
+  id: number;
+  kind: TemplateKind;
+  name: string;
+  version: number;
+  description: string | null;
+  config_json: string;
+  created_at: string | null;
 }
+
+export type TemplateUpdateInput = {
+  name?: string;
+  description?: string | null;
+  config_json?: string;
+}
+
+/**
+ * Contract: A Candidate represents a single stock that passed a Strategy Template at a specific time.
+ * - status: Drives the "Deal Room" journal UI. Starts as "proposed".
+ * - payload_json: Immutable snapshot of the indicators that triggered this candidate.
+ */
 export type Candidate = {
   id: number;
   universe_id: number;
@@ -33,7 +45,7 @@ export type GenerateCandidatesRequest = {
 export type Universe = { id: number; name: string; description: string | null };
 
 export type OHLCVPoint = {
-  date:string; open: number; high:number; low: number; close: number; volume: number | null;
+  date: string; open: number; high: number; low: number; close: number; volume: number | null;
 };
 
 export type SignalPoint = {
@@ -49,13 +61,17 @@ export type UniverseSignalsResponse = {
   universe_id: number; provider: string; interval: string; data: Record<string, SignalPoint[]>;
 };
 
-export type UniverseScanRequest ={
+export type UniverseScanRequest = {
   template_id: number;
   provider?: string;
   interval?: string;
 };
-
+/**
+ * Contract: Response returned by the backend when POST /universes/{id}/scan completes.
+ * The telemetry ID (scan_run_id) is tracked in the `scan_runs` table.
+ */
 export type UniverseScanResponse = {
+  scan_run_id: number;
   universe_id: number;
   template_id: number;
   tickers_processed: number;
@@ -67,10 +83,10 @@ export type UniverseScanResponse = {
 export async function runUniverseScan(
   universeId: number,
   payload: UniverseScanRequest,
-){
-  const res = await fetch(`${API_BASE}/universes/${universeId}/scan`,{
+) {
+  const res = await fetch(`${API_BASE}/universes/${universeId}/scan`, {
     method: "POST",
-    headers: { "Content-Type": "application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Run scan failed: ${res.status}`);
@@ -83,22 +99,22 @@ async function getJSON<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function generateCandidates(payload: GenerateCandidatesRequest){
-    const res = await fetch(`${API_BASE}/candidates/generate`,{
-        method:"POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Generate failed: ${res.status}`);
-    return res.json() as Promise<{ universe_id: number; template_id: number; created_count: number }>;
+export async function generateCandidates(payload: GenerateCandidatesRequest) {
+  const res = await fetch(`${API_BASE}/candidates/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Generate failed: ${res.status}`);
+  return res.json() as Promise<{ universe_id: number; template_id: number; created_count: number }>;
 
 }
 
 
 export async function listUniverseCandidates(universeId: number) {
-    const res = await fetch(`${API_BASE}/universes/${universeId}/candidates`, { cache : "no-store"});
-    if (!res.ok) throw new Error(`Candidates load failed: ${res.status}`);
-    return res.json() as Promise<Candidate[]>;
+  const res = await fetch(`${API_BASE}/universes/${universeId}/candidates`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Candidates load failed: ${res.status}`);
+  return res.json() as Promise<Candidate[]>;
 }
 
 export function listUniverses() {
@@ -117,30 +133,30 @@ export function getUniverseSignals(universeId: number, limit = 30) {
   return getJSON<UniverseSignalsResponse>(`/universes/${universeId}/signals?limit=${limit}`);
 }
 
-export function listTemplates(kind?: TemplateKind){
-    const qs = kind ? `?kind=${kind}` : "";
-    return getJSON<Template[]>(`/templates${qs}`);
+export function listTemplates(kind?: TemplateKind) {
+  const qs = kind ? `?kind=${kind}` : "";
+  return getJSON<Template[]>(`/templates${qs}`);
 }
 
 
 export type UniverseCreateInput = {
-    name: string;
-    description?: string | null;
+  name: string;
+  description?: string | null;
 };
 
 export type UniverseUpdateInput = {
-    name?: string;
-    description?: string | null;
+  name?: string;
+  description?: string | null;
 };
 
 export async function createUniverse(payload: UniverseCreateInput) {
-    const res = await fetch(`${API_BASE}/universes`,{
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error (`Create universe failed: ${res.status}`);
-    return res.json() as Promise<Universe>;
+  const res = await fetch(`${API_BASE}/universes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Create universe failed: ${res.status}`);
+  return res.json() as Promise<Universe>;
 }
 
 export async function updateUniverse(universeId: number, payload: UniverseUpdateInput) {
@@ -165,4 +181,14 @@ export async function addTickerToUniverse(universeId: number, ticker: string, na
   }
   if (!res.ok) throw new Error(`Add ticker failed: ${res.status}`);
   return res.json() as Promise<{ universe_id: number; stock_id: number; ticker: string }>;
+}
+
+export async function updateTemplate(templateId: number, payload: TemplateUpdateInput) {
+  const res = await fetch(`${API_BASE}/templates/${templateId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Update template failed: ${res.status}`);
+  return res.json() as Promise<Template>;
 }

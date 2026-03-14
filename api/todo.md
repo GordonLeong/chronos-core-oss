@@ -39,17 +39,17 @@ Done when:
 Create/update/add ticker each show visible in-page success/error messages.
 Invalid ticker remains explicit and actionable.
 
-- [ ] `4) Frontend: Template rule editor (minimal)` (`~1.25h`)
+- [x] `4) Frontend: Template rule editor (minimal)` (`~1.25h`)
 Done when:
 User can add/remove/edit rules with `field/op/value` controls.
 Save uses existing `/templates` API without requiring raw JSON editing.
 
-- [ ] `5) Backend: Scan run telemetry` (`~1.25h`)
+- [x] `5) Backend: Scan run telemetry` (`~1.25h`)
 Done when:
 A `scan_runs` table (or equivalent) tracks `started_at`, `ended_at`, `status`, metrics, and error text.
 `POST /universes/{id}/scan` returns `scan_run_id`.
 
-- [ ] `6) Tests: Cover updated scan + UI-facing contracts` (`~0.75h`)
+- [x] `6) Tests: Cover updated scan + UI-facing contracts` (`~0.75h`)
 Done when:
 Backend tests verify telemetry contract and deterministic error mapping.
 Frontend contract assumptions (response shape) are documented and checked.
@@ -63,11 +63,31 @@ Frontend contract assumptions (response shape) are documented and checked.
 
 ## End-of-Slice Acceptance
 
-- [ ] UI flow is linear and understandable for non-React users:
+- [x] UI flow is linear and understandable for non-React users:
 `create/select universe -> add ticker -> choose/edit template rules -> run scan -> view candidates`
-- [ ] No silent no-op actions.
-- [ ] Core failures are visible in-page with actionable copy.
+- [x] No silent no-op actions.
+- [x] Core failures are visible in-page with actionable copy.
 
 ## Next Action (Do This First)
 
 `Frontend Step 1`: split `web/src/app/page.tsx` into 4 workflow panels and remove debug blocks from the primary user path.
+
+## Detour: UX Refinement (Tailwind)
+
+Goal: Clean up the UI to resemble a modern web application using Tailwind CSS, keeping the structure generic enough for an easy migration to shadcn later.
+
+- [ ] `1) Layout & Typography Polish`
+Done when: Global page layout has a modern container, clean background, and updated typography.
+- [ ] `2) Card/Panel Styling`
+Done when: Workflow panels (Universe, Template, Scan, Candidates) look like modern UI cards (borders, subtle shadows, rounded corners).
+- [ ] `3) Form Controls & Buttons`
+Done when: Inputs, selects, and buttons have consistent padding, focus states, and hover effects resembling standard shadcn components.
+
+- [ ] `4) Delete Universe`
+Done when: A "Delete" button on the Universe panel calls `DELETE /universes/{id}` and redirects cleanly.
+
+- [ ] `5) Rule editor field hints`
+Done when: The `field` input in the template rule editor shows the valid signal fields as a datalist/dropdown (`rsi`, `macd`, `ema_20`, `ema_50`, `bb_upper`, `bb_lower`, `macd_signal`).
+
+- [ ] `6) Candidates deduplication / "latest only" view`
+Done when: The Candidates panel shows only the most recent scan's results (or groups by ticker+date) instead of accumulating all historical rows.
