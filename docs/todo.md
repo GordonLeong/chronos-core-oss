@@ -63,31 +63,31 @@ Yahoo Finance is just the first implementation, not the product contract.
 
 ### Schema + backend deletion tasks
 
-- [ ] **C-01** Remove `api/chronos.db` from the working tree and verify startup recreates a fresh DB
-- [ ] **C-02** Delete `Universe`, `UniverseMember`, and related Pydantic request/response models from `api/models.py`
-- [ ] **C-03** Delete `api/repositories/universes.py`
-- [ ] **C-04** Delete universe membership helpers from `api/repositories/stocks.py` and keep only canonical stock helpers
-- [ ] **C-05** Delete `api/routers/universes.py` and remove the router from `api/main.py`
-- [ ] **C-06** Delete `UniverseScanRequest`, `UniverseScanResponse`, `ScanStatus`, and `ScanRun`
-- [ ] **C-07** Delete `api/services/scan.py`
-- [ ] **C-08** Delete universe-batch logic from `api/services/candidate_engine.py`
-- [ ] **C-09** Remove `TemplateKind` and make `StrategyTemplate` strategy-only in model, repo, and router contracts
-- [ ] **C-10** Delete the universe-driven background refresh model from `api/services/refresh_prices.py`, preserving only on-demand per-underlying refresh helpers
+- [x] **C-01** Remove `api/chronos.db` from the working tree and verify startup recreates a fresh DB
+- [x] **C-02** Delete `Universe`, `UniverseMember`, and related Pydantic request/response models from `api/models.py`
+- [x] **C-03** Delete `api/repositories/universes.py`
+- [x] **C-04** Delete universe membership helpers from `api/repositories/stocks.py` and keep only canonical stock helpers
+- [x] **C-05** Delete `api/routers/universes.py` and remove the router from `api/main.py`
+- [x] **C-06** Delete `UniverseScanRequest`, `UniverseScanResponse`, `ScanStatus`, and `ScanRun`
+- [x] **C-07** Delete `api/services/scan.py`
+- [x] **C-08** Delete universe-batch logic from `api/services/candidate_engine.py`
+- [x] **C-09** Remove `TemplateKind` and make `StrategyTemplate` strategy-only in model, repo, and router contracts
+- [x] **C-10** Delete the universe-driven background refresh model from `api/services/refresh_prices.py`, preserving only on-demand per-underlying refresh helpers
 
 ### Frontend deletion tasks
 
-- [ ] **C-11** Delete `web/src/features/universe/UniversePanel.tsx`
-- [ ] **C-12** Delete `web/src/features/universe/UniverseFormPanel.tsx`
-- [ ] **C-13** Delete `web/src/features/scan/RunScanPanel.tsx`
-- [ ] **C-14** Delete `web/src/features/candidates/CandidatesPanel.tsx`
-- [ ] **C-15** Delete universe/scan actions from `web/src/app/actions.ts`
-- [ ] **C-16** Remove universe/scan types and client calls from `web/src/lib/api.ts`
-- [ ] **C-17** Replace the current homepage composition in `web/src/app/page.tsx` with a manual workbench shell
+- [x] **C-11** Delete `web/src/features/universe/UniversePanel.tsx`
+- [x] **C-12** Delete `web/src/features/universe/UniverseFormPanel.tsx`
+- [x] **C-13** Delete `web/src/features/scan/RunScanPanel.tsx`
+- [x] **C-14** Delete `web/src/features/candidates/CandidatesPanel.tsx`
+- [x] **C-15** Delete universe/scan actions from `web/src/app/actions.ts`
+- [x] **C-16** Remove universe/scan types and client calls from `web/src/lib/api.ts`
+- [x] **C-17** Replace the current homepage composition in `web/src/app/page.tsx` with a manual workbench shell
 
 ### Test cleanup tasks
 
-- [ ] **C-18** Delete universe-scan tests in `api/tests/test_scan_flow.py`
-- [ ] **C-19** Add a minimal startup smoke test that only checks `GET /healthz`
+- [x] **C-18** Delete universe-scan tests in `api/tests/test_scan_flow.py`
+- [x] **C-19** Add a minimal startup smoke test that only checks `GET /healthz`
 
 ### Migration foundation tasks
 

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query,status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_session
-from models import TemplateCreate, TemplateRead, TemplateKind, TemplateUpdate
+from models import TemplateCreate, TemplateRead, TemplateUpdate
 from repositories.templates import (create_template, list_templates, get_template_by_id, 
                                     delete_template, update_template, get_latest_template_by_name )
 
@@ -23,14 +23,12 @@ async def create_template_endpoint(
     
 @router.get("", response_model=list[TemplateRead])
 async def list_templates_endpoint(
-    kind: TemplateKind | None = Query(None),
     limit: int=Query(50, ge=1, le=200),
     offset: int=Query(0, ge=0),
     session: AsyncSession = Depends(get_session),
 ) -> list[TemplateRead]:
     rows = await list_templates(
         session,
-        kind=kind,
         limit=limit,
         offset=offset,
     )
@@ -76,13 +74,11 @@ async def delete_template_endpoint(
 
 @router.get("/resolve/latest", response_model=TemplateRead)
 async def resolve_latest_template_endpoint(
-    kind: TemplateKind = Query(...),
     name: str = Query(..., min_length=1),
     session: AsyncSession = Depends(get_session),
 ) -> TemplateRead:
     row = await get_latest_template_by_name(
         session,
-        kind = kind,
         name = name,
     )
     if row is None:

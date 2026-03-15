@@ -7,16 +7,7 @@ from db import Base
 from pydantic import BaseModel, ConfigDict, field_validator
 import enum, json
 
-class Universe(Base):
-    __tablename__ = "universes"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(128), nullable = False, index=True)
-    description = Column(String(1024), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    members: Mapped[list["UniverseMember"]] = relationship(
-        back_populates="universe", cascade="all, delete-orphan"
-    )
 
 
 class Stock(Base):
@@ -25,62 +16,15 @@ class Stock(Base):
     ticker: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, index=True)
     name: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
-    #backrefs
-    memberships: Mapped[list["UniverseMember"]]= relationship(
-        back_populates="stock", cascade ="all, delete-orphan"
-    )
 
-class UniverseMember(Base):
-    __tablename__ = "universe_members"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    universe_id: Mapped[int] = mapped_column(
-        ForeignKey("universes.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    stock_id: Mapped[int] = mapped_column(
-        ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False, index=True
-    )
 
-    __table_args__ = (UniqueConstraint("universe_id", "stock_id", name="uq_universe_stock"),)
-
-    #relationships
-    universe: Mapped["Universe"] = relationship(back_populates="members")
-    stock: Mapped["Stock"]= relationship(back_populates="memberships")
 
 
 
 
 #-- Pydantic v2 ----
-class UniverseCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
 
-class UniverseRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    name: str
-    description: Optional[str] = None
-    created_at: Optional[datetime] = None
-
-
-class UniverseUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-
-class UniverseScanRequest(BaseModel):
-    template_id: int
-    provider: str = "yahooquery"
-    interval: str = "1d"
-
-class UniverseScanResponse(BaseModel):
-    scan_run_id: int
-    universe_id: int
-    template_id: int
-    tickers_processed: int
-    ohlcv_rows_written: int
-    candidates_created: int
-    error_count: int
 
 
 class UtcDateTime(TypeDecorator):
@@ -195,12 +139,6 @@ class StockSignal(Base):
 
     stock: Mapped["Stock"] = relationship(back_populates="signals", lazy="joined")
 
-class TemplateKind(str, enum.Enum):
-    risk = "risk"
-    trade = "trade"
-    strategy = "strategy"
-
-
 class ScanStatus(str, enum.Enum):
     running ="running"
     completed="completed"
@@ -228,12 +166,6 @@ class StrategyTemplate(Base):
     __tablename__ = "strategy_templates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    kind: Mapped[TemplateKind] = mapped_column(
-        SAEnum(TemplateKind, name="template_kind"),
-        nullable=False,
-        index=True,
-    )
-
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     config_json: Mapped[str] = mapped_column(String(8192), nullable=False)
@@ -245,11 +177,10 @@ class StrategyTemplate(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("kind", "name","version", name="uq_template_kind_name_version"),
+        UniqueConstraint("name","version", name="uq_template_name_version"),
     )
 
 class TemplateCreate(BaseModel):
-    kind: TemplateKind
     name: str
     version: int =1
     description: Optional[str] = None
@@ -296,7 +227,6 @@ class TemplateRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    kind: TemplateKind
     name: str
     version: int
     description: Optional[str] = None
