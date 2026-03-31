@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chronos — Deal Room",
-  description: "Stock screening and candidate pipeline",
+  title: "Chronos",
+  description: "Strategy-Template-First decision engine",
 };
 
 export default function RootLayout({

@@ -91,11 +91,11 @@ Yahoo Finance is just the first implementation, not the product contract.
 
 ### Migration foundation tasks
 
-- [ ] **C-20** Add a real migration toolchain for the API schema instead of relying on `metadata.create_all()`
-- [ ] **C-21** Add an initial baseline migration for the post-cleanup schema
-- [ ] **C-22** Refactor app startup so schema changes run through migrations, not automatic table creation
-- [ ] **C-23** Add a documented local workflow for `upgrade`, `downgrade`, and creating new revisions
-- [ ] **C-24** Add a test path that boots a fresh database through migrations only
+- [x] **C-20** Add a real migration toolchain for the API schema instead of relying on `metadata.create_all()`
+- [x] **C-21** Add an initial baseline migration for the post-cleanup schema
+- [x] **C-22** Refactor app startup so schema changes run through migrations, not automatic table creation
+- [x] **C-23** Add a documented local workflow for `upgrade`, `downgrade`, and creating new revisions
+- [x] **C-24** Add a test path that boots a fresh database through migrations only
 
 ---
 
@@ -109,14 +109,14 @@ Do not start brokerage automation or Bot Studio work until this loop is complete
 
 ### Adapter boundaries
 
-- [ ] **P0-01** Create a typed `PriceAdapter` contract for bar history reads
-- [ ] **P0-02** Create a typed `OptionChainAdapter` contract for normalized chain snapshots
-- [ ] **P0-03** Create a typed `VenueAdapter` contract for venue profile and order-rule lookups
-- [ ] **P0-04** Create a typed `ExecutionAdapter` contract for `open` intents in sim mode
-- [ ] **P0-05** Create a typed `AccountStateAdapter` contract for buying power, cash, and open positions
-- [ ] **P0-06** Refactor the existing Yahoo price provider to implement the new `PriceAdapter` contract cleanly
-- [ ] **P0-07** Add a Yahoo Finance options chain adapter that returns a normalized, adapter-owned schema
-- [ ] **P0-08** Add a local sim execution adapter stub that can accept an `ExecutionIntent` and emit a fill result
+- [x] **P0-01** Create a typed `PriceAdapter` contract for bar history reads
+- [x] **P0-02** Create a typed `OptionChainAdapter` contract for normalized chain snapshots
+- [x] **P0-03** Create a typed `VenueAdapter` contract for venue profile and order-rule lookups
+- [x] **P0-04** Create a typed `ExecutionAdapter` contract for `open` intents in sim mode
+- [x] **P0-05** Create a typed `AccountStateAdapter` contract for buying power, cash, and open positions
+- [x] **P0-06** Refactor the existing Yahoo price provider to implement the new `PriceAdapter` contract cleanly
+- [x] **P0-07** Add a Yahoo Finance options chain adapter that returns a normalized, adapter-owned schema
+- [x] **P0-08** Add a local sim execution adapter stub that can accept an `ExecutionIntent` and emit a fill result
 
 ### Template + domain model
 

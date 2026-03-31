@@ -29,12 +29,10 @@ except Exception:
 
 async def init_db() -> None:
     """
-    Create database tables from models.Base metadata.
-    Run once at startup or during dev to create the sqlite file and tables.
+    App startup DB hook. Since we now use Alembic for migrations,
+    we no longer call Base.metadata.create_all here.
     """
-    async with engine.begin() as conn:
-        # run_sync will execute the synchronous metadata.create_all in a threadpool
-        await conn.run_sync(Base.metadata.create_all)
+    pass
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

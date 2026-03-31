@@ -14,21 +14,7 @@ export type TemplateUpdateInput = {
   config_json?: string;
 }
 
-/**
- * Contract: A Candidate represents a single stock that passed a Strategy Template at a specific time.
- * - status: Drives the "Deal Room" journal UI. Starts as "proposed".
- * - payload_json: Immutable snapshot of the indicators that triggered this candidate.
- */
-export type Candidate = {
-  id: number;
-  template_id: number;
-  ticker: string;
-  as_of: string;
-  score: number;
-  status: "proposed" | "selected" | "rejected";
-  reason_code: string | null;
-  payload_json: string;
-};
+
 
 
 

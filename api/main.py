@@ -13,8 +13,6 @@ from db import init_db
 
 from routers.stocks import router as stocks_router
 from routers.templates import router as templates_router
-from routers.candidates import router as candidates_router
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chronos.main")
@@ -57,7 +55,6 @@ app.add_middleware(
 
 app.include_router(stocks_router)
 app.include_router(templates_router)
-app.include_router(candidates_router)
 
 @app.get("/", response_class=JSONResponse)
 async def root() -> dict:

@@ -5,36 +5,14 @@ from ohlcv import OHLCVRow
 
 _BUILTINS_LOADED = False
 
-@runtime_checkable
-class PriceProvider(Protocol):
-    """
-    Adapter interface for OHLCV providers
-    
-    """
-    name: str
-    def fetch_ohlcv(self, ticker: str, interval: str) -> int:
-        """
-        Return number of rows fetched or 0 if none. Raise on fatal errors.
-        """
-        ...
-    def fetch_ohlcv_rows(
-            self, 
-            ticker: str,
-            interval: str,
-    ) -> list[OHLCVRow]:
-        """
-        Return normalized OHLCV rows for (ticker, interval).
+from services.contracts import PriceAdapter
 
-        Each tuple is:
-        (date, open, high, low, close, volume_or_None)
-        """
-        ...
-        
+_BUILTINS_LOADED = False
 
-_REGISTRY: Dict[str, PriceProvider] = {}
+_REGISTRY: Dict[str, PriceAdapter] = {}
 
-def register_provider(provider: PriceProvider) -> None:
-    _REGISTRY[provider.name] = provider
+def register_provider(name: str, provider: PriceAdapter) -> None:
+    _REGISTRY[name] = provider
 
 def _ensure_builtins_loaded() -> None:
     global _BUILTINS_LOADED
@@ -46,7 +24,7 @@ def _ensure_builtins_loaded() -> None:
 
     _BUILTINS_LOADED = True
 
-def get_provider(name: str) -> PriceProvider:
+def get_provider(name: str) -> PriceAdapter:
     _ensure_builtins_loaded()
     try:
         return _REGISTRY[name]

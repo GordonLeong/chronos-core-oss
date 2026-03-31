@@ -1,8 +1,8 @@
-from __future__ import annotations
 from yahooquery import Ticker
-from services.provider_registry import PriceProvider, register_provider
+from services.provider_registry import register_provider
+from services.contracts import PriceAdapter
 from datetime import date, datetime
-from typing import Optional, List, cast
+from typing import Optional, List
 import pandas as pd
 
 from ohlcv import OHLCVRow
@@ -10,7 +10,7 @@ from ohlcv import OHLCVRow
 
 class YahooQueryProvider:
     """
-    YahooQuery adapter implementing PriceProvider interface.
+    YahooQuery adapter implementing PriceAdapter interface.
     """
     name = "yahooquery"
 
@@ -101,4 +101,4 @@ class YahooQueryProvider:
         return rows
 
 
-register_provider(YahooQueryProvider())
+register_provider("yahooquery", YahooQueryProvider())

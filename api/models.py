@@ -24,9 +24,6 @@ class Stock(Base):
 
 
 #-- Pydantic v2 ----
-
-
-
 class UtcDateTime(TypeDecorator):
     """
     stores datetimes as naive UTC in DB: returns tz-aware UTC datetimes in python.
@@ -139,28 +136,7 @@ class StockSignal(Base):
 
     stock: Mapped["Stock"] = relationship(back_populates="signals", lazy="joined")
 
-class ScanStatus(str, enum.Enum):
-    running ="running"
-    completed="completed"
-    failed="failed"
 
-class ScanRun(Base):
-    __tablename__ = "scan_runs"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    universe_id: Mapped[int] = mapped_column(ForeignKey("universes.id", ondelete="CASCADE"), nullable=False, index=True)
-    template_id: Mapped[int] = mapped_column(ForeignKey("strategy_templates.id", ondelete="CASCADE"), nullable=False, index=True)
-    
-    status: Mapped[ScanStatus] = mapped_column(SAEnum(ScanStatus, name="scan_status"), nullable=False, default=ScanStatus.running)
-    
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    
-    tickers_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    ohlcv_rows_written: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    candidates_created: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    
-    error_text: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
 
 class StrategyTemplate(Base):
     __tablename__ = "strategy_templates"
@@ -271,69 +247,3 @@ class TemplateUpdate(BaseModel):
         if score_field is not None and (not isinstance(score_field, str) or not score_field):
             raise ValueError("score_field must be a non-empty string when provided")
         return v
-
-class CandidateStatus(str, enum.Enum):
-    proposed = "proposed"
-    selected = "selected"
-    rejected = "rejected"
-
-class CandidateCreate(BaseModel):
-    universe_id: int
-    template_id: int
-    ticker: str
-    score: float
-    status: CandidateStatus = CandidateStatus.proposed
-    reason_code: Optional[str] = None
-    payload_json: str
-
-class CandidateRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    universe_id: int
-    template_id: int
-    ticker: str
-    as_of: datetime
-    score: float
-    status: CandidateStatus
-    reason_code: Optional[str] = None
-    payload_json: str
-
-
-class TradeCandidate(Base):
-    """
-    CandidateStatus defines controlled lifecycle states for one generated candidate.
-    TradeCandidate is the persistence record for candidate pipeline output.
-    universe_id ties candidate to selection scope.
-    template_id ties candidate to the rule/template that produced it.
-    ticker records underlying symbol for quick filtering.
-    as_of stores generation timestamp.
-    score stores deterministic ranking value.
-    status tracks proposed/selected/rejected state transitions.
-    reason_code captures explainable rejection or selection label.
-    payload_json stores full candidate context snapshot for later audit/journal.
-    """
-    __tablename__ = "trade_candidates"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    universe_id: Mapped[int] = mapped_column(ForeignKey("universes.id", ondelete="CASCADE"), nullable=False, index=True)
-    template_id: Mapped[int] = mapped_column(ForeignKey("strategy_templates.id", ondelete="CASCADE"), nullable=False, index=True)
-    ticker: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-   
-    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
-    score: Mapped[float] = mapped_column(Float, nullable=False)
-    status: Mapped[CandidateStatus] = mapped_column(SAEnum(CandidateStatus, name="candidate_status"), nullable=False, default=CandidateStatus.proposed)
-
-    reason_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    payload_json: Mapped[str] = mapped_column(String(8192), nullable=False)
-
-class GenerateCandidateRequest(BaseModel):
-    universe_id: int
-    template_id: int
-    provider: str = "yahooquery"
-    interval: str = "1d"
-
-
-class GenerateCandidateResponse(BaseModel):
-    universe_id: int
-    template_id: int
-    created_count: int

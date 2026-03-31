@@ -14,12 +14,6 @@ export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<{
-    universe?: string;
-    ticker_error?: string;
-    ticker_success?: string;
-    universe_error?: string;
-    universe_success?: string;
-    scan?: string;
     template_error?: string;
     template_success?: string;
   }>;
