@@ -4,6 +4,7 @@ import pandas as pd
 from yahooquery import Ticker
 
 from services.contracts import OptionChainAdapter, OptionChainSnapshot, OptionStrike
+from services.adapter_registry import register_option_adapter
 
 logger = logging.getLogger(__name__)
 

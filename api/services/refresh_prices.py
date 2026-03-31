@@ -9,7 +9,7 @@ from repositories.stocks import get_stock_by_ticker
 from repositories.cache import upsert_cache_status
 from ohlcv import upsert_ohlcv
 from services.ta.compute import compute_and_upsert_signals
-from services.provider_registry import get_provider
+from services.adapter_registry import get_price_adapter
 
 logger = logging.getLogger("chronos.refresh")
 

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import random
 
 from services.contracts import ExecutionAdapter, ExecutionIntent, ExecutionFill
+from services.adapter_registry import register_execution_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -37,3 +38,5 @@ class LocalSimExecutionAdapter(ExecutionAdapter):
             avg_price=mock_fill_price,
             status="filled"
         )
+
+register_execution_adapter("local_sim", LocalSimExecutionAdapter())

@@ -1,5 +1,5 @@
 from yahooquery import Ticker
-from services.provider_registry import register_provider
+from services.adapter_registry import register_price_adapter
 from services.contracts import PriceAdapter
 from datetime import date, datetime
 from typing import Optional, List
@@ -101,4 +101,4 @@ class YahooQueryProvider:
         return rows
 
 
-register_provider("yahooquery", YahooQueryProvider())
+register_price_adapter("yahooquery", YahooQueryProvider())
